@@ -2,596 +2,534 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>營養腎隊友 CRF</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+<title>營養腎隊友 個案紀錄表</title>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Noto+Serif+TC:wght@700&display=swap');
 :root{
-  --blue:#1a3f6b;--blue2:#2563a0;--green:#1b6b3a;--green2:#22964f;
-  --bg:#f0f2f5;--card:#fff;--input-bg:#fafcff;--label-bg:#f4f6f9;
-  --border:#e2e5ea;--text:#2d3748;--text2:#64748b;--text3:#94a3b8;
-  --radius:10px;--shadow:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+  --blue:#3b5998;--blue2:#5b7bd5;--green:#2d8659;--green2:#3da670;
+  --orange:#d97706;--orange2:#f59e0b;
+  --bg:#f7f5f2;--card:#fff;--input-bg:#fefefe;
+  --border:#e8e4df;--text:#3d3929;--text2:#7c7567;--text3:#a8a08f;
+  --radius:16px;--shadow:0 2px 8px rgba(0,0,0,.04),0 1px 3px rgba(0,0,0,.06);
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
-.app{max-width:680px;margin:0 auto;padding:12px 16px 60px}
-
-/* Header */
-.header{text-align:center;padding:20px 0 12px}
-.header h1{font-family:'Noto Serif TC',serif;font-size:22px;color:var(--blue);letter-spacing:2px}
-.header p{font-size:11px;color:var(--text3);margin-top:2px;letter-spacing:.5px}
-
-/* Tabs */
-.tabs{display:flex;gap:6px;justify-content:center;margin:12px 0 16px;flex-wrap:wrap}
-.tab{padding:9px 20px;border-radius:24px;border:1.5px solid var(--border);background:var(--card);color:var(--text2);font-weight:500;font-size:13px;cursor:pointer;font-family:inherit;transition:all .2s;letter-spacing:.3px}
+body{font-family:'Noto Sans TC',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.7;letter-spacing:.3px}
+.app{max-width:720px;margin:0 auto;padding:12px 16px 80px}
+.header{text-align:center;padding:20px 0 8px}
+.header h1{font-family:'Noto Serif TC',serif;font-size:21px;color:var(--blue);letter-spacing:2px}
+.header p{font-size:11px;color:var(--text3);margin-top:2px}
+.tabs{display:flex;gap:5px;justify-content:center;margin:10px 0 14px;flex-wrap:wrap}
+.tab{padding:8px 16px;border-radius:24px;border:1.5px solid var(--border);background:var(--card);color:var(--text2);font-weight:500;font-size:12.5px;cursor:pointer;font-family:inherit;transition:all .2s}
 .tab:hover{border-color:var(--blue2);color:var(--blue)}
-.tab.active{background:var(--blue);color:#fff;border-color:var(--blue);box-shadow:0 2px 8px rgba(26,63,107,.25)}
-.tab.g.active{background:var(--green);border-color:var(--green);box-shadow:0 2px 8px rgba(27,107,58,.25)}
-
-/* Cards */
-.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden}
-
-/* Section headers */
-.sec{padding:10px 18px;font-weight:700;font-size:14px;color:#fff;letter-spacing:.8px;display:flex;align-items:center;gap:8px}
-.sec.blue{background:linear-gradient(135deg,#1a3f6b,#2563a0)}.sec.green{background:linear-gradient(135deg,#1b6b3a,#22964f)}.sec.dark{background:linear-gradient(135deg,#334155,#475569)}
-.sec small{font-weight:400;font-size:11px;opacity:.8}
-
-.sub{padding:7px 18px;font-weight:600;font-size:12.5px;color:var(--blue);background:#eef2f7;border-bottom:1px solid var(--border);letter-spacing:.3px}
-.sub.green{color:var(--green);background:#eef7f0}
-
-/* Rows */
-.row{display:flex;border-bottom:1px solid #f1f3f5;min-height:42px}
-.row:last-child{border-bottom:none}
-.row-label{min-width:108px;width:108px;padding:8px 12px;font-weight:500;font-size:12px;color:var(--text2);background:var(--label-bg);display:flex;align-items:center;border-right:1px solid #f1f3f5}
-.row-content{flex:1;padding:6px 12px;display:flex;align-items:center;flex-wrap:wrap;gap:4px}
-
-/* Inputs */
-input[type=text],input[type=number],input[type=date]{
-  border:1.5px solid var(--border);border-radius:7px;padding:6px 10px;font-size:13px;font-family:inherit;
-  background:var(--input-bg);transition:border .2s,box-shadow .2s;color:var(--text)}
-input:focus{outline:none;border-color:var(--blue2);box-shadow:0 0 0 3px rgba(37,99,160,.1)}
-
-/* Pills */
-.pills{display:flex;flex-wrap:wrap;gap:4px}
-.pill{padding:5px 14px;border-radius:20px;border:1.5px solid var(--border);background:var(--card);color:var(--text2);font-size:12.5px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .15s;letter-spacing:.2px}
-.pill:hover{border-color:var(--blue2);color:var(--blue)}
-.pill.on{background:var(--blue);color:#fff;border-color:var(--blue)}.pill.on-g{background:var(--green);color:#fff;border-color:var(--green)}
-.pill.sus{min-width:40px;text-align:center;justify-content:center;display:inline-flex}
-
-/* Grid */
-.grid2{display:grid;grid-template-columns:1fr 1fr}
-.grid3{display:grid;grid-template-columns:1fr 1fr 1fr}
-
-.inline{display:inline-flex;align-items:center;gap:4px}
-.unit{font-size:11px;color:var(--text3);white-space:nowrap}
-.cite{font-size:9.5px;color:var(--text3);padding:4px 18px 8px;line-height:1.5;font-style:italic}
-.auto-val{font-weight:700;color:var(--blue);font-size:15px}
-
-/* Buttons */
-.btn{color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:14px;cursor:pointer;font-family:inherit;font-weight:600;transition:all .15s;letter-spacing:.3px}
-.btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.15)}
-.btn-s{padding:5px 14px;font-size:12px;border-radius:7px}
-.b-blue{background:var(--blue)}.b-green{background:var(--green)}.b-red{background:#b91c1c}.b-gray{background:#64748b}
-.actions{display:flex;gap:10px;justify-content:center;margin:24px 0 8px;flex-wrap:wrap}
-
-/* Toast */
-.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-20px);background:var(--green);color:#fff;padding:10px 28px;border-radius:10px;font-weight:600;z-index:999;opacity:0;transition:all .3s;box-shadow:0 4px 16px rgba(0,0,0,.15)}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-
-/* List cards */
-.rec-card{border:1.5px solid var(--border);border-radius:var(--radius);padding:12px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;background:var(--card);transition:box-shadow .15s}
-.rec-card:hover{box-shadow:var(--shadow)}
-.rec-card b{color:var(--blue);font-size:14px}
-.rec-card .meta{font-size:12px;color:var(--text2)}
-.rec-card .sep{color:#ddd;margin:0 6px}
-.empty{text-align:center;color:var(--text3);padding:50px 20px;font-size:15px}
-.btn-new-prominent{
-  background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;border-radius:12px;
-  padding:12px 28px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;
-  box-shadow:0 4px 14px rgba(217,119,6,.35);letter-spacing:.5px;transition:all .2s;
-  display:inline-flex;align-items:center;gap:6px}
-.btn-new-prominent:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(217,119,6,.45)}
-.btn-new-prominent .icon{font-size:20px;line-height:1}
-
-.foot{text-align:center;font-size:10px;color:var(--text3);margin-top:10px;line-height:1.6}
-.sus-total{padding:10px 18px;font-size:16px;font-weight:700;color:var(--green);display:flex;align-items:center;gap:8px}
-.sus-badge{font-size:11px;padding:2px 10px;border-radius:12px;background:#dcfce7;color:#166534;font-weight:600}
+.tab.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.tab.t-green.active{background:var(--green);border-color:var(--green)}
+.tab.t-orange.active{background:var(--orange);border-color:var(--orange)}
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;margin-bottom:16px}
+.card-title{font-weight:700;font-size:15px;color:var(--blue);margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid #ede9e3}
+.card-title.green{color:var(--green);border-color:#d1e7d9}
+.card-title.orange{color:var(--orange);border-color:#fde3cf}
+.row{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.lbl{min-width:100px;font-weight:500;font-size:13px;color:var(--text2);flex-shrink:0}
+.lbl.wide{min-width:140px}
+input[type=text],input[type=number],input[type=date],select,textarea{
+  flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:10px;font-size:14px;
+  font-family:inherit;background:var(--input-bg);color:var(--text);min-width:0;transition:border .2s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue2);box-shadow:0 0 0 3px rgba(59,89,152,.1)}
+textarea{resize:vertical;min-height:60px}
+.pills{display:flex;gap:6px;flex-wrap:wrap}
+.pill{padding:7px 15px;border-radius:20px;border:1.5px solid var(--border);background:var(--card);color:var(--text2);font-size:13px;cursor:pointer;font-family:inherit;transition:all .15s}
+.pill:hover{border-color:var(--blue2)}
+.pill.sel{background:var(--blue);color:#fff;border-color:var(--blue)}
+.pill.sel-green{background:var(--green);color:#fff;border-color:var(--green)}
+.sub{font-weight:700;font-size:13.5px;color:var(--blue2);margin:16px 0 8px;padding:6px 0;border-bottom:1px dashed #d0d5dd}
+.sub.green{color:var(--green2)}.sub.orange{color:var(--orange)}
+.auto-val{background:#eef2ff;border-radius:8px;padding:4px 10px;font-weight:600;color:var(--blue);font-size:14px;min-width:60px;text-align:center}
+.auto-val.green{background:#ecfdf5;color:var(--green)}
+.auto-val.orange{background:#fff7ed;color:var(--orange)}
+.warn{background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:10px 14px;margin:8px 0;font-size:13px;color:#991b1b;display:none}
+.warn.show{display:block}
+.note{font-size:12px;color:var(--text3);margin-top:2px}
+.btn{padding:10px 20px;border-radius:10px;border:none;font-weight:600;font-size:14px;cursor:pointer;font-family:inherit;transition:all .2s}
+.btn-blue{background:var(--blue);color:#fff}.btn-blue:hover{background:var(--blue2)}
+.btn-green{background:var(--green);color:#fff}.btn-green:hover{background:var(--green2)}
+.btn-orange{background:var(--orange);color:#fff}.btn-orange:hover{background:var(--orange2)}
+.btn-gray{background:#e5e7eb;color:var(--text)}.btn-gray:hover{background:#d1d5db}
+.btn-new{background:linear-gradient(135deg,#f472b6,#ec4899);color:#fff;border-radius:24px;padding:16px 36px;font-size:17px;font-weight:700;box-shadow:0 4px 16px rgba(236,72,153,.35);letter-spacing:1px;transition:all .2s}
+.btn-new:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(236,72,153,.45)}
+.sga-wrap{background:linear-gradient(135deg,#f0f4ff,#e8ecf8);border:2px solid #c7d2fe;border-radius:20px;padding:20px 16px;margin:16px 0}
+.sga-wrap.green{background:linear-gradient(135deg,#ecfdf5,#d1fae5);border-color:#86efac}
+.sga-h{font-family:'Noto Serif TC',serif;font-size:18px;font-weight:700;color:var(--blue);text-align:center;margin-bottom:4px}
+.sga-h.green{color:var(--green)}
+.sga-cite{font-size:11px;color:var(--text3);text-align:center;margin-bottom:14px}
+.sga-card{background:#f8fafc;padding:12px;margin:8px 0;border-radius:10px}
+.sga-card.green{background:#f0fdf4}
+.sga-card-t{font-weight:700;font-size:13px;margin-bottom:8px}
+/* range row */
+.range-row{display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.range-row .lbl{min-width:120px}
+.range-row input{width:80px;flex:none;text-align:center;padding:8px 6px}
+.range-row .tilde{color:var(--text3);font-size:16px}
+.range-row .unit{font-size:13px;color:var(--text3);min-width:30px}
+.achieve{display:inline-block;padding:3px 10px;border-radius:8px;font-weight:600;font-size:13px}
+.achieve.ok{background:#dcfce7;color:#16a34a}.achieve.ng{background:#fee2e2;color:#dc2626}
+/* checkboxes for supplements */
+.chk-grid{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.chk-item{display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;padding:5px 10px;border:1.5px solid var(--border);border-radius:10px;background:var(--card);transition:all .15s}
+.chk-item.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+.chk-item.on-green{background:var(--green);color:#fff;border-color:var(--green)}
+.chk-item.on-orange{background:var(--orange);color:#fff;border-color:var(--orange)}
+.actions{display:flex;gap:8px;justify-content:center;margin:16px 0;flex-wrap:wrap}
+.flash{position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#065f46;color:#fff;padding:10px 24px;border-radius:12px;font-weight:600;z-index:99;display:none;font-size:14px}
 .hidden{display:none}
-.range-sep{font-size:14px;color:var(--text3);margin:0 2px}
+.cond{display:none}.cond.show{display:block}
+.diet-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+.diet-table th{background:#f1f5f9;padding:8px;text-align:left;font-weight:600;border-bottom:2px solid var(--border)}
+.diet-table td{padding:6px 8px;border-bottom:1px solid var(--border)}
+.diet-table textarea{width:100%;min-height:40px;font-size:13px;border:1px solid var(--border);border-radius:8px;padding:6px;font-family:inherit}
+.list-table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:10px}
+.list-table th{background:var(--blue);color:#fff;padding:8px 6px;text-align:center;font-weight:600;position:sticky;top:0;font-size:12px}
+.list-table td{padding:6px;text-align:center;border-bottom:1px solid var(--border)}
+.list-table tr:hover td{background:#f0f7ff}
+.list-table .act-btn{padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:#fff;cursor:pointer;font-size:12px;font-family:inherit}
+.list-table .act-btn:hover{background:#f0f4ff}
+@media(max-width:480px){.lbl{min-width:80px;font-size:12px}.lbl.wide{min-width:110px}.tab{padding:6px 12px;font-size:11.5px}.range-row input{width:65px}}
 </style>
 </head>
 <body>
-<div class="app" id="app">
-  <div class="header">
-    <h1>營養腎隊友 個案紀錄表</h1>
-    <p>CRF v5.0 ∣ 一位個案＝一筆紀錄（基本＋前測＋後測＋SUS）</p>
-  </div>
-  <div class="tabs" id="tabbar"></div>
-  <div id="page-form">
-    <div id="tab-basic" class="tab-content"></div>
-    <div id="tab-pre" class="tab-content hidden"></div>
-    <div id="tab-post" class="tab-content hidden"></div>
-    <div class="actions">
-      <button class="btn b-blue" id="btn-save">💾 儲存紀錄</button>
-      <button class="btn b-gray" id="btn-new">清空表單</button>
-    </div>
-    <p class="foot">Part A 病歷擷取 ∣ Part B 研究評估（SGA＋身體測量＋SUS）<br>資料存於此瀏覽器 localStorage ∣ 匯出為 Excel 格式</p>
-  </div>
-  <div id="page-list" class="hidden"></div>
+<div class="app">
+<div class="header">
+  <h1>營養腎隊友 個案紀錄表</h1>
+  <p>Case Report Form (CRF) v7 ｜ 2026.03.21</p>
 </div>
-<div class="toast" id="toast"></div>
-
+<div class="tabs" id="tabbar"></div>
+<div id="flash" class="flash"></div>
+<div id="formArea"></div>
+<div id="listArea" class="hidden"></div>
+</div>
 <script>
-const SK="ckd-crf-v5";
-const SUS=[
-  {id:1,t:"我覺得我會想要經常使用這個系統",p:true},
-  {id:2,t:"我發現這個系統太過於複雜",p:false},
-  {id:3,t:"我認為此系統容易進行操作",p:true},
-  {id:4,t:"我需要有人教才能使用這個系統",p:false},
-  {id:5,t:"我覺得這個系統各項功能搭配得很順",p:true},
-  {id:6,t:"我覺得這個系統有些部分落差很大",p:false},
-  {id:7,t:"我想大多數人應該很快就學會使用這個系統",p:true},
-  {id:8,t:"我發現此系統使用起來非常麻煩",p:false},
-  {id:9,t:"我對此系統的使用很有信心",p:true},
-  {id:10,t:"在開始使用系統之前需要先學很多東西",p:false},
-];
-let recs=JSON.parse(localStorage.getItem(SK)||"[]");
-let F=newF(), editIdx=null, curTab="basic";
+const TABS=[{id:"basic",label:"基本資料",cls:""},{id:"pre",label:"前測",cls:""},{id:"target",label:"目標設定",cls:"t-orange"},{id:"post",label:"後測",cls:"t-green"},{id:"sus",label:"SUS",cls:"t-green"}];
+const SGA_B=[{id:"sgaFatLoss",l:"皮下脂肪喪失（三頭肌、胸部）"},{id:"sgaMuscleLoss",l:"肌肉耗損（四頭肌、三角肌）"},{id:"sgaEdemaAnkle",l:"腳踝水腫"},{id:"sgaEdemaSacral",l:"薦骨水腫"},{id:"sgaAscites",l:"腹水"}];
+const SUS_Q=["我想我會經常使用這個系統","我認為這個系統過於複雜","我認為這個系統容易使用","我需要技術人員的幫助才能使用這個系統","我發現系統的各項功能整合良好","我覺得這個系統有太多不一致的地方","我認為大多數人能很快學會使用這個系統","我覺得使用這個系統很繁瑣","我對使用這個系統很有信心","我需要學習很多東西才能使用這個系統"];
+const MEALS=["早餐","午餐","晚餐","點心"];
+const SUPPS=["亞培腎補納","益力壯慎補","桂格完膳腎臟病配方","力增 腎臟病未洗腎配方","百仕可慎護","益力勝慎前","倍速力 慢性腎臟病專用","三多補体康低蛋白","三多補体素低蛋白","偉力健 LPN","愛斯康腎利","其他"];
+// Target items matching backend screenshot
+const T_MACRO=[{k:"cal",e:"🔥",l:"熱量",u:"kcal"},{k:"pro",e:"🥩",l:"蛋白質",u:"g"},{k:"fat",e:"🍖",l:"脂肪",u:"g"},{k:"cho",e:"🍚",l:"碳水化合物",u:"g"},{k:"water",e:"💧",l:"飲水量",u:"mL"}];
+const T_CKD=[{k:"na",e:"🧂",l:"鈉",u:"mg"},{k:"p",e:"🧪",l:"磷",u:"mg"},{k:"k",e:"🍌",l:"鉀",u:"mg"}];
+const T_SIX=[{k:"grain",e:"🌾",l:"全穀雜糧",u:"份"},{k:"meat",e:"🍖",l:"豆魚蛋肉",u:"份"},{k:"veg",e:"🥦",l:"蔬菜類",u:"份"},{k:"fruit",e:"🍎",l:"水果類",u:"份"},{k:"dairy",e:"🥛",l:"乳品類",u:"份"},{k:"oil",e:"🥜",l:"油脂堅果",u:"份"}];
+const ALL_T=[...T_MACRO,...T_CKD,...T_SIX];
 
-function newF(){return{subjectId:"",subjectName:"",lineId:"",assessor:"莊曉雯",consent:"",birthday:"",age:"",sex:"",height:"",weight:"",bmi:"",activity:"",education:"",phoneSkill:"",lineFreq:"",ckdStage:"",dm:"",htn:"",hyperlipidemia:"",otherComorbid:"",antihypertensive:"",antihypertensiveName:"",antidiabetic:"",antidiabeticName:"",lipidLowering:"",phosphateBinder:"",phosphateBinderName:"",supplement:"",supplementItems:[],supplementOther:"",otherMeds:"",tgt_cal_lo:"",tgt_cal_hi:"",tgt_pro_lo:"",tgt_pro_hi:"",tgt_fat_lo:"",tgt_fat_hi:"",tgt_cho_lo:"",tgt_cho_hi:"",tgt_water_lo:"",tgt_water_hi:"",tgt_na_lo:"",tgt_na_hi:"",tgt_phos_lo:"",tgt_phos_hi:"",tgt_k_lo:"",tgt_k_hi:"",tgt_grain_lo:"",tgt_grain_hi:"",tgt_protein_lo:"",tgt_protein_hi:"",tgt_veg_lo:"",tgt_veg_hi:"",tgt_fruit_lo:"",tgt_fruit_hi:"",tgt_dairy_lo:"",tgt_dairy_hi:"",tgt_oil_lo:"",tgt_oil_hi:"",pre_date:todayStr(),pre_labDate:"",pre_cr:"",pre_egfr:"",pre_bun:"",pre_albumin:"",pre_k:"",pre_p:"",pre_hb:"",pre_hba1c:"",pre_sgaScore:"",pre_w6mAgo:"",pre_wc6m:"",pre_wcPct:"",pre_wt2w:"",pre_diet:"",pre_dietDur:"",pre_dietType:"",pre_gi:[],pre_func:"",pre_fat:"",pre_muscle:"",pre_edema:[],pre_notes:"",post_date:"",post_labDate:"",post_cr:"",post_egfr:"",post_bun:"",post_albumin:"",post_k:"",post_p:"",post_hb:"",post_hba1c:"",post_weight:"",post_bmi:"",post_sgaScore:"",post_w6mAgo:"",post_wc6m:"",post_wcPct:"",post_wt2w:"",post_diet:"",post_dietDur:"",post_dietType:"",post_gi:[],post_func:"",post_fat:"",post_muscle:"",post_edema:[],post_notes:"",sus1:"",sus2:"",sus3:"",sus4:"",sus5:"",sus6:"",sus7:"",sus8:"",sus9:"",sus10:"",sus_total:""}}
-function persist(){localStorage.setItem(SK,JSON.stringify(recs))}
-function todayStr(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
-function flash(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2200)}
-function calcAge(){
-  if(!F.birthday){F.age="";const el=document.getElementById("age_val");if(el)el.textContent="";return}
-  const bd=new Date(F.birthday),today=new Date();
-  let a=today.getFullYear()-bd.getFullYear();
-  if(today.getMonth()<bd.getMonth()||(today.getMonth()===bd.getMonth()&&today.getDate()<bd.getDate()))a--;
-  F.age=String(a);
-  const el=document.getElementById("age_val");if(el)el.textContent=a+" 歲";
+function newF(){
+  const f={subjectId:"",name:"",birthday:"",age:"",sex:"",height:"",weight:"",bmi:"",
+    activity:"",ckdStage:"",dm:"",dmNote:"",htn:"",hyperlipidemia:"",assessor:"莊曉雯",
+    antihtn:"",antihtnName:"",antiDM:"",antiDMName:"",lipidMed:"",lipidMedName:"",kBinder:"",kBinderName:"",pBinder:"",pBinderName:"",
+    // current supplements (basic)
+    ...Object.fromEntries(SUPPS.map((_,i)=>["supp_cur_"+i,""])),suppCurOther:"",
+    // Pre
+    preDate:"",preLabDate:"",postDate:"",
+    preEgfr:"",preEgfrHas:"",preAlb:"",preAlbHas:"",preK:"",preKHas:"",preP:"",prePHas:"",preHb:"",preHbHas:"",
+    // Pre SGA A
+    preW6m:"",preWchange:"",preWchangePct:"",preWt2wk:"",
+    preDietChange:"",preDietDuration:"",preDietType:"",
+    preGI_none:"",preGI_nausea:"",preGI_vomit:"",preGI_diarrhea:"",preGI_anorexia:"",
+    preFunc:"",preFuncDuration:"",preFuncType:"",
+    preDxMain:"",preDxStress:"",
+    ...Object.fromEntries(SGA_B.map(x=>[x.id,""])),
+    sgaRating:"",
+    ...Object.fromEntries(MEALS.map(m=>["preDiet_"+m,""])),
+    ...Object.fromEntries(ALL_T.flatMap(t=>[["preOld_"+t.k+"_lo",""],["preOld_"+t.k+"_hi",""],["preActual_"+t.k,""]])),
+    preNote:"",
+    // Target (ranges)
+    ...Object.fromEntries(ALL_T.flatMap(t=>[["t_"+t.k+"_lo",""],["t_"+t.k+"_hi",""]])),
+    ...Object.fromEntries(SUPPS.map((_,i)=>["supp_rec_"+i,""])),suppRecOther:"",
+    // Post
+    postWeight:"",postBmi:"",
+    postEgfr:"",postAlb:"",postK:"",postP:"",postHb:"",
+    postW6m:"",postWchange:"",postWchangePct:"",postWt2wk:"",
+    postDietChange:"",postDietDuration:"",postDietType:"",
+    postGI_none:"",postGI_nausea:"",postGI_vomit:"",postGI_diarrhea:"",postGI_anorexia:"",
+    postFunc:"",postFuncDuration:"",postFuncType:"",
+    postDxMain:"",postDxStress:"",
+    ...Object.fromEntries(SGA_B.map(x=>["post_"+x.id,""])),
+    postSgaRating:"",
+    ...Object.fromEntries(MEALS.map(m=>["postDiet_"+m,""])),
+    ...Object.fromEntries(ALL_T.map(t=>["postActual_"+t.k,""])),
+    postNote:"",
+    // SUS
+    ...Object.fromEntries(SUS_Q.map((_,i)=>["sus"+(i+1),""])),susScore:"",
+  };return f;
 }
-function calcBMI(pfx){
-  const hKey=pfx?"post_height":"height", wKey=pfx?"post_weight":"weight", bKey=pfx?"post_bmi":"bmi";
-  const hVal=pfx?F.height:F.height; // post uses baseline height
-  const h=parseFloat(hVal)/100, w=parseFloat(F[wKey]);
-  F[bKey]=h>0&&w>0?(w/(h*h)).toFixed(1):"";
-  const el=document.getElementById((pfx||"")+"bmi_val");
-  if(el)el.textContent=F[bKey]?F[bKey]+" kg/m²":"—";
-}
-function calcBasicBMI(){
-  const h=parseFloat(F.height)/100,w=parseFloat(F.weight);
-  F.bmi=h>0&&w>0?(w/(h*h)).toFixed(1):"";
-  const el=document.getElementById("bmi_val");if(el)el.textContent=F.bmi?F.bmi+" kg/m²":"—";
-}
-function calcPostBMI(){
-  const h=parseFloat(F.height)/100,w=parseFloat(F.post_weight);
-  F.post_bmi=h>0&&w>0?(w/(h*h)).toFixed(1):"";
-  const el=document.getElementById("post_bmi_val");if(el)el.textContent=F.post_bmi?F.post_bmi+" kg/m²":"—";
-}
-function calcSUS(){let t=0,n=0;SUS.forEach(s=>{const v=parseInt(F["sus"+s.id]);if(v>=1&&v<=5){n++;t+=s.p?(v-1):(5-v)}});F.sus_total=n===10?(t*2.5).toFixed(1):"";const el=document.getElementById("sus_total_val");if(el){el.textContent=F.sus_total?F.sus_total+" / 100":"—（需填完10題）";const b=document.getElementById("sus_badge");if(b)b.style.display=F.sus_total&&parseFloat(F.sus_total)>=68?"inline":""}}
-function onInput(k,el){F[k]=el.value;if(k==="birthday")calcAge();if(k==="height"||k==="weight"){calcBasicBMI();calcWcAuto("pre_")}if(k==="post_weight"){calcPostBMI();calcWcAuto("post_")}if(k==="pre_w6mAgo")calcWcAuto("pre_");if(k==="post_w6mAgo")calcWcAuto("post_")}
-function calcWcAuto(pfx){
-  const ago=parseFloat(F[pfx+"w6mAgo"]);
-  const now=pfx==="post_"?parseFloat(F.post_weight||F.weight):parseFloat(F.weight);
-  if(ago>0&&now>0){
-    const loss=(ago-now).toFixed(1);
-    const pct=(((ago-now)/ago)*100).toFixed(1);
-    F[pfx+"wc6m"]=loss;F[pfx+"wcPct"]=pct;
-    const elKg=document.getElementById(pfx+"wc6m_val");if(elKg)elKg.textContent=(loss>0?"-":"")+loss+" kg";
-    const elPct=document.getElementById(pfx+"wcPct_val");if(elPct)elPct.textContent=(pct>0?"-":"")+pct+" %";
-  } else {
-    F[pfx+"wc6m"]="";F[pfx+"wcPct"]="";
-    const elKg=document.getElementById(pfx+"wc6m_val");if(elKg)elKg.textContent="—";
-    const elPct=document.getElementById(pfx+"wcPct_val");if(elPct)elPct.textContent="—";
-  }
-}
-function onPill(k,v,c,g){F[k]=v;g.querySelectorAll(".pill").forEach(p=>{p.classList.remove("on","on-g");if(p.dataset.val===v)p.classList.add(c==="g"?"on-g":"on")});showCond()}
-function onCheck(k,v,b){const a=F[k]||[];if(a.includes(v)){F[k]=a.filter(x=>x!==v);b.classList.remove("on-g")}else{F[k]=[...a,v];b.classList.add("on-g")}
-  // handle "其他" conditional for supplement
-  if(k==="supplementItems"){
-    const hasOther=(F.supplementItems||[]).includes("其他");
-    document.querySelectorAll('[data-cond="supplementItems_has_other=1"]').forEach(el=>{el.style.display=hasOther?"":"none"});
-  }
-}
-function onSus(id,v,g){F["sus"+id]=String(v);g.querySelectorAll(".pill").forEach(p=>{p.classList.remove("on-g");if(p.dataset.val==v)p.classList.add("on-g")});calcSUS()}
-function showCond(){document.querySelectorAll("[data-cond]").forEach(el=>{const[f,v]=el.dataset.cond.split("=");el.style.display=F[f]===v?"":"none"})}
 
-// === DOM helpers ===
-function mkI(field,opts={}){const w=document.createElement("span");w.className="inline";const i=document.createElement("input");i.type=opts.type||"text";i.value=F[field]||"";i.placeholder=opts.ph||"";i.style.width=opts.w||"100%";i.dataset.field=field;i.addEventListener("input",function(){onInput(field,this)});w.appendChild(i);if(opts.unit){const u=document.createElement("span");u.className="unit";u.textContent=opts.unit;w.appendChild(u)}return w}
-function mkP(field,options,color){const d=document.createElement("div");d.className="pills";options.forEach(o=>{const b=document.createElement("button");b.className="pill";b.textContent=o;b.dataset.val=o;if(F[field]===o)b.classList.add(color==="g"?"on-g":"on");b.addEventListener("click",()=>onPill(field,o,color,d));d.appendChild(b)});return d}
-function mkC(field,options){const d=document.createElement("div");d.className="pills";options.forEach(o=>{const b=document.createElement("button");b.className="pill";b.textContent=o;if((F[field]||[]).includes(o))b.classList.add("on-g");b.addEventListener("click",function(){onCheck(field,o,this)});d.appendChild(b)});return d}
-function mkRow(label,...content){const d=document.createElement("div");d.className="row";const l=document.createElement("div");l.className="row-label";l.textContent=label;const c=document.createElement("div");c.className="row-content";content.forEach(x=>{if(x)c.appendChild(x)});d.appendChild(l);d.appendChild(c);return d}
-function mkSec(title,sub,cls){const d=document.createElement("div");d.className="sec "+(cls||"blue");const h=document.createElement("span");h.textContent=title;d.appendChild(h);if(sub){const s=document.createElement("small");s.textContent="　"+sub;d.appendChild(s)}return d}
-function mkSub(text,cls){const d=document.createElement("div");d.className="sub "+(cls||"");d.textContent=text;return d}
-function mkCond(f,v){const d=document.createElement("div");d.dataset.cond=f+"="+v;d.style.display=F[f]===v?"":"none";return d}
-function mkCite(t){const d=document.createElement("div");d.className="cite";d.textContent=t;return d}
-function mkRange(label,prefix,unit){
-  const w=document.createElement("div");w.className="row-content inline";
-  w.appendChild(mkI(prefix+"_lo",{w:"65px",ph:"下限"}));
-  const s=document.createElement("span");s.className="range-sep";s.textContent="～";w.appendChild(s);
-  w.appendChild(mkI(prefix+"_hi",{w:"65px",ph:"上限"}));
-  const u=document.createElement("span");u.className="unit";u.textContent=" "+unit;w.appendChild(u);
-  return mkRow(label,w);
-}
-function mkCard(title,cls,...children){const card=document.createElement("div");card.className="card";card.appendChild(mkSec(title,"",cls));children.forEach(c=>{if(c)card.appendChild(c)});return card}
+let F=newF(),recs=JSON.parse(localStorage.getItem("crf7")||"[]"),editIdx=null,curTab="basic";
+const persist=()=>localStorage.setItem("crf7",JSON.stringify(recs));
+const flash=msg=>{const el=document.getElementById("flash");el.textContent=msg;el.style.display="block";setTimeout(()=>el.style.display="none",2000)};
 
-// === Reusable blocks ===
-function buildLab(pfx,container){
-  const cls=pfx==="pre_"?"":"green";const card=document.createElement("div");card.className="card";
-  card.appendChild(mkSub("生化檢驗（病歷擷取）",cls));
-  card.appendChild(mkRow("抽血日期",mkI(pfx+"labDate",{type:"date",w:"170px"})));
-  const g=document.createElement("div");g.className="grid2";
-  [["Cr",pfx+"cr","mg/dL"],["eGFR",pfx+"egfr","mL/min"],["BUN",pfx+"bun","mg/dL"],["Albumin",pfx+"albumin","g/dL"],["K（鉀）",pfx+"k","mEq/L"],["P（磷）",pfx+"p","mg/dL"],["Hb",pfx+"hb","g/dL"],["HbA1c",pfx+"hba1c","%"]].forEach(([l,f,u])=>g.appendChild(mkRow(l,mkI(f,{w:"75px",unit:u}))));
-  card.appendChild(g);container.appendChild(card);
-}
-function buildMeasure(pfx,container){
-  const cls=pfx==="pre_"?"":"green";const card=document.createElement("div");card.className="card";
-  card.appendChild(mkSub("身體測量（研究評估）",cls));
-  const g=document.createElement("div");g.className="grid3";
-  g.appendChild(mkRow("身高",mkI(pfx+"height",{w:"65px",unit:"cm"})));
-  g.appendChild(mkRow("體重",mkI(pfx+"weight",{w:"65px",unit:"kg"})));
-  const bv=document.createElement("div");bv.className="auto-val";bv.id=pfx+"bmi_val";bv.textContent=F[pfx+"bmi"]?F[pfx+"bmi"]+" kg/m²":"—";
-  g.appendChild(mkRow("BMI",bv));card.appendChild(g);container.appendChild(card);
-}
-function buildSGA(pfx,container){
-  const cls=pfx==="pre_"?"":"green";const card=document.createElement("div");card.className="card";
-  card.appendChild(mkSub("SGA 主觀整體營養評估（7-point scale）",cls));
-  card.appendChild(mkCite("Kalantar-Zadeh et al. Nephrol Dial Transplant 2001;16(7):1459-65 | Campbell et al. J Ren Nutr 2007;17(6):399-407 | NKF KDOQI 2000"));
-  card.appendChild(mkRow("SGA 評分",mkP(pfx+"sgaScore",["7","6","5","4","3","2","1"])));
-  const sgaDesc=document.createElement("div");sgaDesc.className="cite";sgaDesc.style.fontSize="11px";sgaDesc.style.lineHeight="1.7";sgaDesc.innerHTML="<b>6-7</b> 營養良好（Well-nourished）　<b>3-5</b> 輕中度蛋白質-能量消耗（Mild-moderate PEW）　<b>1-2</b> 重度消耗（Severe PEW）";card.appendChild(sgaDesc);
-  // Weight change: input = 6個月前體重, auto-calc loss and %
-  const ww=document.createElement("div");ww.className="row-content";
-  const wl=document.createElement("div");wl.className="inline";wl.style.flexWrap="wrap";wl.style.gap="6px";
-  wl.appendChild(document.createTextNode("6個月前體重 "));
-  wl.appendChild(mkI(pfx+"w6mAgo",{w:"65px",unit:"kg"}));
-  const lossSpan=document.createElement("span");lossSpan.style.cssText="margin-left:8px;font-weight:600;color:var(--blue);font-size:13px";
-  const lossKg=document.createElement("span");lossKg.id=pfx+"wc6m_val";lossKg.textContent=F[pfx+"wc6m"]?"-"+F[pfx+"wc6m"]+" kg":"—";lossSpan.appendChild(lossKg);
-  lossSpan.appendChild(document.createTextNode("（"));
-  const lossPct=document.createElement("span");lossPct.id=pfx+"wcPct_val";lossPct.textContent=F[pfx+"wcPct"]?"-"+F[pfx+"wcPct"]+" %":"—";lossSpan.appendChild(lossPct);
-  lossSpan.appendChild(document.createTextNode("）"));
-  wl.appendChild(lossSpan);
-  ww.appendChild(wl);
-  const tl=document.createElement("div");tl.style.marginTop="4px";const ts=document.createElement("span");ts.style.fontSize="12px";ts.style.marginRight="4px";ts.textContent="近2週趨勢：";tl.appendChild(ts);tl.appendChild(mkP(pfx+"wt2w",["增加","穩定","減少"]));ww.appendChild(tl);
-  card.appendChild(mkRow("體重變化",ww));
-  card.appendChild(mkRow("飲食攝取",mkP(pfx+"diet",["正常","減少"])));
-  const cd=mkCond(pfx+"diet","減少");const dd=document.createElement("span");dd.className="inline";dd.appendChild(mkI(pfx+"dietDur",{w:"38px"}));dd.appendChild(document.createTextNode(" 週　"));dd.appendChild(mkP(pfx+"dietType",["正常固體","流質","極少量"]));cd.appendChild(mkRow("",dd));card.appendChild(cd);
-  card.appendChild(mkRow("腸胃道症狀",mkC(pfx+"gi",["無","噁心","嘔吐","腹瀉","厭食"])));
-  card.appendChild(mkRow("功能狀態",mkP(pfx+"func",["正常活動","低於正常","臥床"])));
-  card.appendChild(mkRow("脂肪流失",mkP(pfx+"fat",["正常","輕度","中度","重度"])));
-  card.appendChild(mkRow("肌肉耗損",mkP(pfx+"muscle",["正常","輕度","中度","重度"])));
-  card.appendChild(mkRow("水腫",mkC(pfx+"edema",["無","踝部","薦骨","腹水"])));
-  container.appendChild(card);
-}
-function buildSUS(container){
-  const card=document.createElement("div");card.className="card";
-  card.appendChild(mkSub("SUS 系統易用性量表（後測）","green"));
-  card.appendChild(mkCite("Brooke J. SUS: A quick and dirty usability scale. 1996. | 1＝非常不同意　5＝非常同意"));
-  SUS.forEach(item=>{
-    const d=document.createElement("div");d.style.cssText="padding:6px 18px;border-bottom:1px solid #f5f5f5";
-    const lb=document.createElement("div");lb.style.cssText="font-size:12.5px;color:#333;margin-bottom:4px";lb.textContent=item.id+". "+item.t;d.appendChild(lb);
-    const ps=document.createElement("div");ps.className="pills";
-    [1,2,3,4,5].forEach(n=>{const b=document.createElement("button");b.className="pill sus";b.textContent=n;b.dataset.val=n;if(F["sus"+item.id]==String(n))b.classList.add("on-g");b.addEventListener("click",()=>onSus(item.id,n,ps));ps.appendChild(b)});
-    d.appendChild(ps);card.appendChild(d);
+// === Helpers ===
+const mkCard=(t,cls)=>{const d=document.createElement("div");d.className="card";const h=document.createElement("div");h.className="card-title"+(cls?" "+cls:"");h.textContent=t;d.appendChild(h);return d};
+const mkRow=(label,el,wide)=>{const r=document.createElement("div");r.className="row";if(label){const l=document.createElement("div");l.className="lbl"+(wide?" wide":"");l.textContent=label;r.appendChild(l)}if(el)r.appendChild(el);return r};
+const mkI=(key,opts={})=>{const i=document.createElement("input");i.type=opts.type||"text";if(opts.ph)i.placeholder=opts.ph;if(opts.step)i.step=opts.step;i.value=F[key]||"";i.addEventListener("input",()=>{F[key]=i.value;if(opts.onChange)opts.onChange()});i.dataset.key=key;return i};
+const mkP=(key,opts,cls)=>{const d=document.createElement("div");d.className="pills";opts.forEach(o=>{const b=document.createElement("button");b.type="button";b.className="pill"+(F[key]===o?(" sel"+(cls?" "+cls:"")):"");b.textContent=o;b.addEventListener("click",()=>{F[key]=o;d.querySelectorAll(".pill").forEach(p=>p.className="pill");b.className="pill sel"+(cls?" "+cls:"");document.querySelectorAll(".cond").forEach(updateCond)});d.appendChild(b)});return d};
+const mkAuto=(key,cls)=>{const s=document.createElement("span");s.className="auto-val"+(cls?" "+cls:"");s.id="auto_"+key;s.textContent=F[key]||"—";return s};
+const mkSub=(t,cls)=>{const d=document.createElement("div");d.className="sub"+(cls?" "+cls:"");d.textContent=t;return d};
+const mkNote=t=>{const d=document.createElement("div");d.className="note";d.textContent=t;return d};
+const mkTA=(key,ph)=>{const t=document.createElement("textarea");t.placeholder=ph||"";t.value=F[key]||"";t.addEventListener("input",()=>{F[key]=t.value});return t};
+const updateCond=()=>{document.querySelectorAll(".cond").forEach(el=>{el.classList.toggle("show",F[el.dataset.condKey]===el.dataset.condVal)})};
+const mkCond=(key,val)=>{const d=document.createElement("div");d.className="cond"+(F[key]===val?" show":"");d.dataset.condKey=key;d.dataset.condVal=val;return d};
+const calcBMI=(hk,wk,bk)=>{const h=parseFloat(F[hk]),w=parseFloat(F[wk]);if(h>0&&w>0){const b=(w/((h/100)**2)).toFixed(1);F[bk]=b;const el=document.getElementById("auto_"+bk);if(el)el.textContent=b}else{F[bk]="";const el=document.getElementById("auto_"+bk);if(el)el.textContent="—"}};
+const calcAge=()=>{if(!F.birthday)return;const b=new Date(F.birthday),t=new Date();let a=t.getFullYear()-b.getFullYear();if(t.getMonth()<b.getMonth()||(t.getMonth()===b.getMonth()&&t.getDate()<b.getDate()))a--;F.age=String(a);const el=document.getElementById("auto_age");if(el)el.textContent=a+"歲"};
+const calcPostDate=()=>{if(!F.preDate)return;const d=new Date(F.preDate);d.setMonth(d.getMonth()+3);if(!F.postDate)F.postDate=d.toISOString().slice(0,10);const el=document.querySelector('[data-key="postDate"]');if(el&&!el.value)el.value=F.postDate};
+const calcWc=(w6k,wk,ck,pk)=>{const w6=parseFloat(F[w6k]),w=parseFloat(F[wk]);if(w6>0&&w>0){const c=(w6-w).toFixed(1),p=((w6-w)/w6*100).toFixed(1);F[ck]=c;F[pk]=p;const e1=document.getElementById("auto_"+ck);if(e1)e1.textContent=(c>0?"-":"+")+Math.abs(c)+"kg";const e2=document.getElementById("auto_"+pk);if(e2)e2.textContent=(p>0?"-":"+")+Math.abs(p)+"%"}};
+
+// Range input row with emoji
+function mkRange(tItem,prefix){
+  const r=document.createElement("div");r.className="range-row";
+  const l=document.createElement("div");l.className="lbl";l.textContent=tItem.e+" "+tItem.l;r.appendChild(l);
+  const loK=prefix+tItem.k+"_lo",hiK=prefix+tItem.k+"_hi";
+  // Target value input (auto-calc 80%~120%)
+  const tv=document.createElement("input");tv.type="number";tv.step="0.1";tv.placeholder="目標值";tv.style.cssText="width:75px;text-align:center;border:1.5px solid var(--orange);border-radius:10px;background:#fffbeb";
+  // if lo/hi already set, back-calc target as midpoint
+  if(F[loK]&&F[hiK]){const mid=((parseFloat(F[loK])+parseFloat(F[hiK]))/2);tv.value=mid?mid.toFixed(1):"";}
+  tv.addEventListener("input",()=>{
+    const v=parseFloat(tv.value);
+    if(v>0){const loV=(v*0.8).toFixed(1),hiV=(v*1.2).toFixed(1);F[loK]=loV;F[hiK]=hiV;lo.value=loV;hi.value=hiV}
   });
-  const td=document.createElement("div");td.className="sus-total";
-  const tv=document.createElement("span");tv.id="sus_total_val";tv.textContent=F.sus_total?F.sus_total+" / 100":"—（需填完10題）";td.appendChild(tv);
-  const badge=document.createElement("span");badge.className="sus-badge";badge.id="sus_badge";badge.textContent="✓ 可接受（≥68）";badge.style.display=F.sus_total&&parseFloat(F.sus_total)>=68?"inline":"none";td.appendChild(badge);
-  card.appendChild(td);container.appendChild(card);
+  r.appendChild(tv);
+  const arr=document.createElement("span");arr.style.cssText="color:var(--orange);font-size:12px;font-weight:600";arr.textContent="→";r.appendChild(arr);
+  const lo=document.createElement("input");lo.type="number";lo.step="0.1";lo.value=F[loK]||"";lo.placeholder="下限";lo.addEventListener("input",()=>{F[loK]=lo.value});lo.dataset.key=loK;r.appendChild(lo);
+  const til=document.createElement("span");til.className="tilde";til.textContent="~";r.appendChild(til);
+  const hi=document.createElement("input");hi.type="number";hi.step="0.1";hi.value=F[hiK]||"";hi.placeholder="上限";hi.addEventListener("input",()=>{F[hiK]=hi.value});hi.dataset.key=hiK;r.appendChild(hi);
+  const u=document.createElement("span");u.className="unit";u.textContent=tItem.u;r.appendChild(u);
+  return r;
 }
 
-// === Build form ===
+// Supplements checkbox grid
+function mkSupps(prefix,cls){
+  const d=document.createElement("div");d.className="chk-grid";
+  SUPPS.forEach((s,i)=>{
+    const k=prefix+i;
+    const b=document.createElement("div");b.className="chk-item"+(F[k]==="1"?" "+(cls||"on"):"");b.textContent=s;
+    b.addEventListener("click",()=>{F[k]=F[k]==="1"?"":"1";b.className="chk-item"+(F[k]==="1"?" "+(cls||"on"):"")});
+    d.appendChild(b);
+  });
+  return d;
+}
+
+// Build SGA section (Detsky 1987)
+function buildSGA(parent,pre,cls){
+  const px=pre?"pre":"post",gc=pre?"":"green",sc=pre?"":"sel-green",bg=pre?"#f8fafc":"#f0fdf4",tc=pre?"":"color:var(--green)";
+  const w=document.createElement("div");w.className="sga-wrap"+(pre?"":" green");
+  const h=document.createElement("div");h.className="sga-h"+(pre?"":" green");h.textContent="📋 SGA 主觀整體營養評估";w.appendChild(h);
+  const ci=document.createElement("div");ci.className="sga-cite";ci.textContent="Detsky AS, et al. JPEN 1987;11(1):8-13 ｜ A/B/C 三級評估";w.appendChild(ci);
+  w.appendChild(mkSub("A. 生活史",gc));
+  // A1
+  const a1=document.createElement("div");a1.className="sga-card"+(pre?"":" green");
+  const a1t=document.createElement("div");a1t.className="sga-card-t";a1t.style.cssText=tc;a1t.textContent="1. 體重變化";a1.appendChild(a1t);
+  const wcR=document.createElement("div");wcR.className="row";
+  wcR.appendChild(Object.assign(document.createElement("div"),{className:"lbl wide",textContent:"6個月前體重"}));
+  wcR.appendChild(mkI(px+"W6m",{type:"number",ph:"kg",onChange:()=>calcWc(px+"W6m",pre?"weight":"postWeight",px+"Wchange",px+"WchangePct")}));
+  wcR.appendChild(Object.assign(document.createElement("div"),{className:"lbl",textContent:"減輕",style:"min-width:35px"}));
+  wcR.appendChild(mkAuto(px+"Wchange",gc));
+  wcR.appendChild(Object.assign(document.createElement("div"),{className:"lbl",textContent:"比率",style:"min-width:35px"}));
+  wcR.appendChild(mkAuto(px+"WchangePct",gc));
+  a1.appendChild(wcR);calcWc(px+"W6m",pre?"weight":"postWeight",px+"Wchange",px+"WchangePct");
+  a1.appendChild(mkRow("近兩週體重變化",mkP(px+"Wt2wk",["增加","沒有變化","減少"],sc)));
+  w.appendChild(a1);
+  // A2
+  const a2=document.createElement("div");a2.className="sga-card"+(pre?"":" green");
+  a2.appendChild(Object.assign(document.createElement("div"),{className:"sga-card-t",textContent:"2. 飲食變化（與平常飲食比較）",style:tc}));
+  a2.appendChild(mkRow("飲食變化",mkP(px+"DietChange",["沒有變化","有變化"],sc)));
+  const dc=mkCond(px+"DietChange","有變化");dc.appendChild(mkRow("期間",mkI(px+"DietDuration",{ph:"__週"})));dc.appendChild(mkRow("方式",mkP(px+"DietType",["軟質飲食","全流質飲食","低熱量流質","飢餓"],sc)));a2.appendChild(dc);w.appendChild(a2);
+  // A3
+  const a3=document.createElement("div");a3.className="sga-card"+(pre?"":" green");
+  a3.appendChild(Object.assign(document.createElement("div"),{className:"sga-card-t",textContent:"3. 腸胃症狀（持續兩週以上）",style:tc}));
+  const giO=["無症狀","噁心","嘔吐","腹瀉","厭食"],giK=giO.map((_,i)=>px+"GI_"+["none","nausea","vomit","diarrhea","anorexia"][i]);
+  const giD=document.createElement("div");giD.className="pills";
+  giO.forEach((o,i)=>{const b=document.createElement("button");b.type="button";b.className="pill"+(F[giK[i]]==="1"?" "+(sc||"sel"):"");b.textContent=o;b.addEventListener("click",()=>{if(o==="無症狀"){giK.forEach(k=>F[k]="");F[giK[0]]="1";giD.querySelectorAll(".pill").forEach(p=>p.className="pill");b.className="pill "+(sc||"sel")}else{F[giK[0]]="";F[giK[i]]=F[giK[i]]==="1"?"":"1";giD.querySelector(".pill").className="pill";b.className=F[giK[i]]==="1"?"pill "+(sc||"sel"):"pill"}});giD.appendChild(b)});
+  a3.appendChild(giD);w.appendChild(a3);
+  // A4
+  const a4=document.createElement("div");a4.className="sga-card"+(pre?"":" green");
+  a4.appendChild(Object.assign(document.createElement("div"),{className:"sga-card-t",textContent:"4. 活動機能",style:tc}));
+  a4.appendChild(mkRow("狀態",mkP(px+"Func",["無障礙","功能受損"],sc)));
+  const fc=mkCond(px+"Func","功能受損");fc.appendChild(mkRow("期間",mkI(px+"FuncDuration",{ph:"__週 __月"})));fc.appendChild(mkRow("型態",mkP(px+"FuncType",["工作能力受損","可走動","臥床不起"],sc)));a4.appendChild(fc);w.appendChild(a4);
+  // A5
+  const a5=document.createElement("div");a5.className="sga-card"+(pre?"":" green");
+  a5.appendChild(Object.assign(document.createElement("div"),{className:"sga-card-t",textContent:"5. 疾病與營養需求關係",style:tc}));
+  a5.appendChild(mkNote("評估疾病是否增加代謝需求。穩定CKD門診＝無/輕度；合併感染、手術、急性發炎＝中/高度"));
+  // Auto-fill diagnosis from CKD stage
+  const dxK=px+"DxMain";
+  if(!F[dxK]){
+    let dx="";
+    if(F.ckdStage)dx="CKD Stage "+F.ckdStage;
+    if(F.dm==="有")dx+=(dx?", ":"")+"DM"+(F.dmNote?" ("+F.dmNote+")":"");
+    if(dx)F[dxK]=dx;
+  }
+  a5.appendChild(mkRow("主要診斷",mkI(dxK,{ph:"CKD Stage __"})));
+  // Default stress to 輕度壓力 if empty
+  const stK=px+"DxStress";
+  if(!F[stK])F[stK]="輕度壓力";
+  a5.appendChild(mkRow("代謝壓力",mkP(stK,["無壓力","輕度壓力","中度壓力","高度壓力"],sc)));
+  w.appendChild(a5);
+  // B
+  w.appendChild(mkSub("B. 生理狀況",gc));
+  // Score header aligned
+  const bHead=document.createElement("div");bHead.style.cssText="display:flex;justify-content:flex-end;gap:6px;margin-bottom:8px;padding-right:4px";
+  ["0 正常","1 輕微","2 適度","3 嚴重"].forEach(t=>{
+    const sp=document.createElement("span");sp.style.cssText="width:56px;text-align:center;font-size:11px;color:var(--text3);font-weight:500";sp.textContent=t;bHead.appendChild(sp);
+  });
+  w.appendChild(bHead);
+  SGA_B.forEach(item=>{
+    const row=document.createElement("div");row.style.cssText="display:flex;align-items:center;margin-bottom:8px;flex-wrap:wrap";
+    const lbl=document.createElement("div");lbl.className="lbl wide";lbl.textContent=item.l;row.appendChild(lbl);
+    const pd=document.createElement("div");pd.style.cssText="display:flex;justify-content:flex-end;gap:6px;margin-left:auto";
+    const ik=(pre?"":px+"_")+item.id;
+    ["0","1","2","3"].forEach(v=>{
+      const b=document.createElement("button");b.type="button";
+      b.style.cssText="width:56px;height:36px;border-radius:10px;border:1.5px solid var(--border);background:var(--card);color:var(--text2);font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s";
+      if(F[ik]===v){b.style.background=pre?"var(--blue)":"var(--green)";b.style.color="#fff";b.style.borderColor=pre?"var(--blue)":"var(--green)"}
+      b.textContent=v;
+      b.addEventListener("click",()=>{F[ik]=v;pd.querySelectorAll("button").forEach(p=>{p.style.background="var(--card)";p.style.color="var(--text2)";p.style.borderColor="var(--border)"});b.style.background=pre?"var(--blue)":"var(--green)";b.style.color="#fff";b.style.borderColor=pre?"var(--blue)":"var(--green)"});
+      pd.appendChild(b);
+    });
+    row.appendChild(pd);w.appendChild(row);
+  });
+  // C
+  w.appendChild(mkSub("C. 主觀性整體評估等級（單選）",gc));
+  const rk=pre?"sgaRating":"postSgaRating";
+  const rd=document.createElement("div");rd.className="pills";rd.style.gap="10px";
+  [["A","A = 營養良好"],["B","B = 中等營養不良、或懷疑營養不良"],["C","C = 嚴重營養不良"]].forEach(([v,l])=>{
+    const b=document.createElement("button");b.type="button";b.className="pill"+(F[rk]===v?" "+(sc||"sel"):"");b.style.cssText="padding:10px 16px;font-size:13px";b.textContent=l;
+    b.addEventListener("click",()=>{F[rk]=v;rd.querySelectorAll(".pill").forEach(p=>p.className="pill");b.className="pill "+(sc||"sel")});rd.appendChild(b)});
+  w.appendChild(rd);
+  parent.appendChild(w);
+}
+
+// === Build Form ===
 function buildForm(){
-  const basic=document.getElementById("tab-basic");basic.innerHTML="";
-  // 研究資訊
-  let card=document.createElement("div");card.className="card";
-  card.appendChild(mkSec("研究資訊","","blue"));
-  card.appendChild(mkRow("受試者編號",mkI("subjectId",{ph:"例：CKD-001"})));
-  card.appendChild(mkRow("受試者姓名",mkI("subjectName",{ph:"僅供對照，不納入分析"})));
-  card.appendChild(mkRow("LINE ID",mkI("lineId",{ph:"LINE 顯示名稱或 ID"})));
-  card.appendChild(mkRow("評估者",mkI("assessor")));
-  card.appendChild(mkRow("同意書",mkP("consent",["已簽署","未簽署"])));
-  basic.appendChild(card);
-
-  // Part A
-  card=document.createElement("div");card.className="card";
-  card.appendChild(mkSec("Part A：病歷擷取","資料來源：院內病歷系統","blue"));
-  card.appendChild(mkSub("A-1 人口學特徵"));
-  // Birthday + auto age
-  const bdRow=mkRow("生日",mkI("birthday",{type:"date",w:"170px"}));
-  const ageSpan=document.createElement("span");ageSpan.id="age_val";ageSpan.style.cssText="margin-left:12px;font-weight:700;color:var(--blue);font-size:14px";ageSpan.textContent=F.age?F.age+" 歲":"";
-  bdRow.querySelector(".row-content").appendChild(ageSpan);
-  card.appendChild(bdRow);
-  card.appendChild(mkRow("性別",mkP("sex",["男","女"])));
-  // Body measurements (like backend)
-  card.appendChild(mkSub("身高體重與每日熱量需求"));
-  const bodyGrid=document.createElement("div");bodyGrid.className="grid2";
-  bodyGrid.appendChild(mkRow("身高",mkI("height",{w:"70px",unit:"cm"})));
-  bodyGrid.appendChild(mkRow("體重",mkI("weight",{w:"70px",unit:"kg"})));
-  card.appendChild(bodyGrid);
-  const bmiVal=document.createElement("div");bmiVal.className="auto-val";bmiVal.id="bmi_val";bmiVal.textContent=F.bmi?F.bmi+" kg/m²":"—";
-  card.appendChild(mkRow("BMI（自動計算）",bmiVal));
-  card.appendChild(mkRow("活動量",mkP("activity",["輕度工作","中度工作","重度工作"])));
-  card.appendChild(mkRow("教育程度",mkP("education",["國小以下","國中","高中職","大專以上"])));
-  card.appendChild(mkSub("A-2 疾病史"));
-  card.appendChild(mkRow("CKD 分期",mkP("ckdStage",["Stage 1","Stage 2","Stage 3a","Stage 3b","Stage 4","Stage 5"])));
-  card.appendChild(mkRow("DM",mkP("dm",["無","有"])));
-  card.appendChild(mkRow("HTN",mkP("htn",["無","有"])));
-  card.appendChild(mkRow("高血脂",mkP("hyperlipidemia",["無","有"])));
-  card.appendChild(mkRow("其他共病",mkI("otherComorbid")));
-  card.appendChild(mkSub("A-3 用藥"));
-  card.appendChild(mkRow("降血壓藥",mkP("antihypertensive",["無","有"])));let c1=mkCond("antihypertensive","有");c1.appendChild(mkRow("",mkI("antihypertensiveName",{ph:"藥名"})));card.appendChild(c1);
-  card.appendChild(mkRow("降血糖藥",mkP("antidiabetic",["無","有"])));c1=mkCond("antidiabetic","有");c1.appendChild(mkRow("",mkI("antidiabeticName",{ph:"藥名"})));card.appendChild(c1);
-  card.appendChild(mkRow("降血脂藥",mkP("lipidLowering",["無","有"])));
-  card.appendChild(mkRow("磷結合劑",mkP("phosphateBinder",["無","有"])));c1=mkCond("phosphateBinder","有");c1.appendChild(mkRow("",mkI("phosphateBinderName",{ph:"藥名"})));card.appendChild(c1);
-  card.appendChild(mkRow("營養補充品",mkP("supplement",["無","有"])));
-  let cSup=mkCond("supplement","有");
-  cSup.appendChild(mkRow("使用品項（可複選）",mkC("supplementItems",["勝補納","桂格完膳","慎選1","易能充","慎選0","三多LPF-N","力增Reg.EN","百仕可慎護1.4%","益力勝慎前8%","倍速力Fresubin","補体康白方","偉力健LPN","其他"])));
-  const cSupOther=mkCond("supplementItems_has_other","1");
-  cSupOther.appendChild(mkRow("其他品名",mkI("supplementOther",{ph:"請填寫品名"})));
-  cSup.appendChild(cSupOther);
-  card.appendChild(cSup);
-  card.appendChild(mkRow("其他藥物",mkI("otherMeds")));
-  card.appendChild(mkSub("受試者特徵（收案時詢問）"));
-  card.appendChild(mkRow("手機使用",mkP("phoneSkill",["熟練","尚可","需協助"])));
-  card.appendChild(mkRow("LINE 頻率",mkP("lineFreq",["每天","經常","偶爾","未使用"])));
-  basic.appendChild(card);
-
-  // 量化自我目標
-  card=document.createElement("div");card.className="card";
-  card.appendChild(mkSec("量化自我目標值","對應後台個人化設定","dark"));
-  card.appendChild(mkSub("熱量與三大營養素"));
-  card.appendChild(mkRange("🔥 熱量","tgt_cal","kcal"));card.appendChild(mkRange("🥩 蛋白質","tgt_pro","g"));card.appendChild(mkRange("🧈 脂肪","tgt_fat","g"));card.appendChild(mkRange("🍚 碳水","tgt_cho","g"));card.appendChild(mkRange("💧 飲水量","tgt_water","mL"));
-  card.appendChild(mkSub("CKD 重點控制營養素"));
-  card.appendChild(mkRange("🧂 鈉","tgt_na","mg"));card.appendChild(mkRange("🦴 磷","tgt_phos","mg"));card.appendChild(mkRange("🍌 鉀","tgt_k","mg"));
-  card.appendChild(mkSub("六大類食物攝取目標"));
-  card.appendChild(mkRange("🌾 全穀雜糧","tgt_grain","份"));card.appendChild(mkRange("🍖 豆魚蛋肉","tgt_protein","份"));card.appendChild(mkRange("🥬 蔬菜類","tgt_veg","份"));card.appendChild(mkRange("🍎 水果類","tgt_fruit","份"));card.appendChild(mkRange("🥛 乳品類","tgt_dairy","份"));card.appendChild(mkRange("🥜 油脂堅果","tgt_oil","份"));
-  basic.appendChild(card);
+  const area=document.getElementById("formArea");area.innerHTML="";
+  // BASIC
+  const s0=document.createElement("div");s0.id="sec_basic";s0.className=curTab==="basic"?"":"hidden";
+  let c=mkCard("基本資料");
+  c.appendChild(mkRow("受試者編號",mkI("subjectId",{ph:"CRF-001"})));
+  c.appendChild(mkRow("姓名",mkI("name")));
+  // birthday+age
+  const bdR=document.createElement("div");bdR.className="row";
+  bdR.appendChild(Object.assign(document.createElement("div"),{className:"lbl",textContent:"生日"}));
+  bdR.appendChild(mkI("birthday",{type:"date",onChange:calcAge}));
+  bdR.appendChild(Object.assign(document.createElement("div"),{className:"lbl",textContent:"年齡",style:"min-width:40px"}));
+  bdR.appendChild(mkAuto("age"));c.appendChild(bdR);calcAge();
+  c.appendChild(mkRow("性別",mkP("sex",["男","女"])));
+  // h/w/bmi
+  const hwR=document.createElement("div");hwR.className="row";
+  hwR.appendChild(Object.assign(document.createElement("div"),{className:"lbl",textContent:"身高(cm)"}));
+  hwR.appendChild(mkI("height",{type:"number",onChange:()=>calcBMI("height","weight","bmi")}));
+  hwR.appendChild(Object.assign(document.createElement("div"),{className:"lbl",textContent:"體重(kg)",style:"min-width:70px"}));
+  hwR.appendChild(mkI("weight",{type:"number",onChange:()=>calcBMI("height","weight","bmi")}));
+  hwR.appendChild(Object.assign(document.createElement("div"),{className:"lbl",textContent:"BMI",style:"min-width:35px"}));
+  hwR.appendChild(mkAuto("bmi"));c.appendChild(hwR);calcBMI("height","weight","bmi");
+  c.appendChild(mkRow("活動量",mkP("activity",["輕度工作","中度工作","重度工作"])));
+  c.appendChild(mkRow("CKD分期",mkP("ckdStage",["1","2","3a","3b","4","5"])));
+  c.appendChild(mkRow("DM",mkP("dm",["無","有"])));
+  const cdm=mkCond("dm","有");cdm.appendChild(mkRow("",mkI("dmNote",{ph:"Type / 備註"})));c.appendChild(cdm);
+  c.appendChild(mkRow("HTN",mkP("htn",["無","有"])));
+  c.appendChild(mkRow("高血脂",mkP("hyperlipidemia",["無","有"])));
+  c.appendChild(mkSub("用藥"));
+  c.appendChild(mkRow("降血壓藥",mkP("antihtn",["無","有"])));
+  let cd1=mkCond("antihtn","有");cd1.appendChild(mkRow("",mkI("antihtnName",{ph:"藥名"})));c.appendChild(cd1);
+  c.appendChild(mkRow("降血糖藥",mkP("antiDM",["無","有"])));
+  let cd2=mkCond("antiDM","有");cd2.appendChild(mkRow("",mkI("antiDMName",{ph:"藥名"})));c.appendChild(cd2);
+  c.appendChild(mkRow("血脂用藥",mkP("lipidMed",["無","有"])));
+  let cd5=mkCond("lipidMed","有");cd5.appendChild(mkRow("",mkI("lipidMedName",{ph:"藥名"})));c.appendChild(cd5);
+  c.appendChild(mkRow("鉀結合劑",mkP("kBinder",["無","有"])));
+  let cd3=mkCond("kBinder","有");cd3.appendChild(mkRow("",mkI("kBinderName",{ph:"藥名"})));c.appendChild(cd3);
+  c.appendChild(mkRow("磷結合劑",mkP("pBinder",["無","有"])));
+  let cd4=mkCond("pBinder","有");cd4.appendChild(mkRow("",mkI("pBinderName",{ph:"藥名"})));c.appendChild(cd4);
+  c.appendChild(mkSub("目前使用之營養品"));
+  c.appendChild(mkSupps("supp_cur_","on"));
+  c.appendChild(mkRow("其他營養品",mkI("suppCurOther",{ph:"請填寫"})));
+  c.appendChild(mkRow("評估者",mkI("assessor",{ph:"莊曉雯"})));
+  s0.appendChild(c);area.appendChild(s0);
 
   // PRE
-  const pre=document.getElementById("tab-pre");pre.innerHTML="";
-  const preCard=document.createElement("div");preCard.className="card";
-  preCard.appendChild(mkSec("前測 Baseline（Week 0）","","blue"));
-  preCard.appendChild(mkRow("前測日期",mkI("pre_date",{type:"date",w:"170px"})));
-  pre.appendChild(preCard);
-  buildLab("pre_",pre);buildSGA("pre_",pre);
-  const preNote=document.createElement("div");preNote.className="card";preNote.appendChild(mkRow("備註",mkI("pre_notes",{ph:"前測觀察紀錄..."})));pre.appendChild(preNote);
+  const s1=document.createElement("div");s1.id="sec_pre";s1.className=curTab==="pre"?"":"hidden";
+  let cp=mkCard("前測評估");
+  const dR=document.createElement("div");dR.className="row";
+  dR.appendChild(Object.assign(document.createElement("div"),{className:"lbl",textContent:"前測日期"}));
+  const pdi=mkI("preDate",{type:"date",onChange:calcPostDate});if(!F.preDate){F.preDate=new Date().toISOString().slice(0,10);pdi.value=F.preDate}dR.appendChild(pdi);
+  dR.appendChild(Object.assign(document.createElement("div"),{className:"lbl",textContent:"預計後測",style:"min-width:70px"}));
+  const pdI=mkI("postDate",{type:"date"});calcPostDate();pdI.value=F.postDate||"";dR.appendChild(pdI);
+  cp.appendChild(dR);
+  // Biochem
+  cp.appendChild(mkSub("生化檢驗值（需一個月內數據）"));
+  cp.appendChild(mkRow("上次檢驗日期",mkI("preLabDate",{type:"date"})));
+  const bio=[{k:"preEgfr",hk:"preEgfrHas",l:"eGFR",u:"mL/min/1.73m²"},{k:"preAlb",hk:"preAlbHas",l:"Albumin",u:"g/dL"},{k:"preK",hk:"preKHas",l:"K（鉀）",u:"mEq/L"},{k:"preP",hk:"prePHas",l:"P（磷）",u:"mg/dL"},{k:"preHb",hk:"preHbHas",l:"Hb（血色素）",u:"g/dL"}];
+  const wd=document.createElement("div");wd.className="warn";
+  const updW=()=>{const m=bio.filter(b=>F[b.hk]==="無").map(b=>b.l);if(m.length){wd.className="warn show";wd.innerHTML="⚠️ <b>需請主任加開：</b>"+m.join("、")+"<br><span style='font-size:12px;color:#6b7280'>前測＋三個月後後測，共兩次</span>"}else wd.className="warn"};
+  bio.forEach(b=>{const r=document.createElement("div");r.className="row";r.appendChild(Object.assign(document.createElement("div"),{className:"lbl wide",textContent:b.l}));
+    const hp=document.createElement("div");hp.className="pills";hp.style.marginRight="8px";
+    ["有","無"].forEach(v=>{const btn=document.createElement("button");btn.type="button";btn.className="pill"+(F[b.hk]===v?" sel":"");btn.textContent=v;btn.addEventListener("click",()=>{F[b.hk]=v;hp.querySelectorAll(".pill").forEach(p=>p.className="pill");btn.className="pill sel";updW()});hp.appendChild(btn)});
+    r.appendChild(hp);r.appendChild(mkI(b.k,{type:"number",ph:b.u,step:"0.01"}));cp.appendChild(r)});
+  cp.appendChild(wd);updW();
+  // SGA
+  buildSGA(cp,true);
+  // 24hr
+  cp.appendChild(mkSub("24小時飲食速記"));cp.appendChild(mkNote("跟診時快速記錄，之後輸入系統精算"));
+  const dt=document.createElement("table");dt.className="diet-table";const dh=document.createElement("tr");["餐次","食物品項與份量"].forEach(h=>{const th=document.createElement("th");th.textContent=h;dh.appendChild(th)});dt.appendChild(dh);
+  MEALS.forEach(m=>{const tr=document.createElement("tr");const td1=document.createElement("td");td1.style.cssText="width:70px;font-weight:600";td1.textContent=m;tr.appendChild(td1);const td2=document.createElement("td");td2.appendChild(mkTA("preDiet_"+m,"輸入食物..."));tr.appendChild(td2);dt.appendChild(tr)});cp.appendChild(dt);
+  // 6-group achieve (range-based)
+  cp.appendChild(mkSub("攝取達成率（舊目標 vs 本次實際）"));
+  cp.appendChild(mkNote("舊目標：從病歷調閱。填入目標值自動帶入 80%~120% 範圍，可微調"));
+  ALL_T.forEach(t=>{
+    const r=document.createElement("div");r.className="range-row";
+    r.appendChild(Object.assign(document.createElement("div"),{className:"lbl",textContent:t.e+" "+t.l}));
+    const lok="preOld_"+t.k+"_lo",hik="preOld_"+t.k+"_hi",ak="preActual_"+t.k;
+    // Target value input with auto 80%~120%
+    const tv=document.createElement("input");tv.type="number";tv.step="0.1";tv.placeholder="目標值";
+    tv.style.cssText="width:75px;text-align:center;border:1.5px solid var(--blue2);border-radius:10px;background:#eef2ff";
+    if(F[lok]&&F[hik]){const mid=((parseFloat(F[lok])+parseFloat(F[hik]))/2);tv.value=mid?mid.toFixed(1):"";}
+    const lo=document.createElement("input");lo.type="number";lo.step="0.1";lo.value=F[lok]||"";lo.placeholder="下限";lo.addEventListener("input",()=>{F[lok]=lo.value;updAch()});
+    const hi=document.createElement("input");hi.type="number";hi.step="0.1";hi.value=F[hik]||"";hi.placeholder="上限";hi.addEventListener("input",()=>{F[hik]=hi.value;updAch()});
+    tv.addEventListener("input",()=>{
+      const v=parseFloat(tv.value);
+      if(v>0){const loV=(v*0.8).toFixed(1),hiV=(v*1.2).toFixed(1);F[lok]=loV;F[hik]=hiV;lo.value=loV;hi.value=hiV;updAch()}
+    });
+    r.appendChild(tv);
+    r.appendChild(Object.assign(document.createElement("span"),{style:"color:var(--blue2);font-size:12px;font-weight:600",textContent:"→"}));
+    r.appendChild(lo);
+    r.appendChild(Object.assign(document.createElement("span"),{className:"tilde",textContent:"~"}));
+    r.appendChild(hi);
+    r.appendChild(Object.assign(document.createElement("span"),{className:"unit",textContent:t.u}));
+    r.appendChild(Object.assign(document.createElement("span"),{className:"unit",textContent:"實際:"}));
+    const ac=document.createElement("input");ac.type="number";ac.step="0.1";ac.value=F[ak]||"";ac.style.width="70px";ac.addEventListener("input",()=>{F[ak]=ac.value;updAch()});r.appendChild(ac);
+    const ach=document.createElement("span");ach.id="ach_pre_"+t.k;ach.className="achieve";ach.textContent="—";r.appendChild(ach);
+    cp.appendChild(r);
+  });
+  const updAch=()=>{ALL_T.forEach(t=>{const lo=parseFloat(F["preOld_"+t.k+"_lo"]),hi=parseFloat(F["preOld_"+t.k+"_hi"]),ac=parseFloat(F["preActual_"+t.k]);const el=document.getElementById("ach_pre_"+t.k);if(!el)return;if(isNaN(lo)||isNaN(hi)||isNaN(ac)){el.textContent="—";el.className="achieve";return}if(ac>=lo&&ac<=hi){el.textContent="✓ 達成";el.className="achieve ok"}else{el.textContent="✗ 未達";el.className="achieve ng"}})};updAch();
+  cp.appendChild(mkRow("前測備註",mkTA("preNote","其他觀察記錄...")));
+  s1.appendChild(cp);area.appendChild(s1);
+
+  // TARGET
+  const s2=document.createElement("div");s2.id="sec_target";s2.className=curTab==="target"?"":"hidden";
+  let ct=mkCard("新目標設定","orange");
+  ct.appendChild(mkNote("此目標將登錄至營養腎隊友後台，供病人遵循三個月"));
+  ct.appendChild(mkSub("🔥 熱量與三大營養素目標","orange"));
+  T_MACRO.forEach(t=>ct.appendChild(mkRange(t,"t_")));
+  ct.appendChild(mkSub("🧪 CKD重點控制營養素","orange"));
+  T_CKD.forEach(t=>ct.appendChild(mkRange(t,"t_")));
+  ct.appendChild(mkSub("🍽 六大類食物攝取目標","orange"));
+  T_SIX.forEach(t=>ct.appendChild(mkRange(t,"t_")));
+  ct.appendChild(mkSub("💊 建議使用之營養品","orange"));
+  ct.appendChild(mkSupps("supp_rec_","on-orange"));
+  ct.appendChild(mkRow("其他營養品",mkI("suppRecOther",{ph:"請填寫"})));
+  s2.appendChild(ct);area.appendChild(s2);
 
   // POST
-  const post=document.getElementById("tab-post");post.innerHTML="";
-  const postCard=document.createElement("div");postCard.className="card";
-  postCard.appendChild(mkSec("後測 Post-test（Week 12）","","green"));
-  postCard.appendChild(mkRow("後測日期",mkI("post_date",{type:"date",w:"170px"})));
-  post.appendChild(postCard);
-  buildLab("post_",post);
-  // Post weight only (height from baseline)
-  const postBody=document.createElement("div");postBody.className="card";
-  postBody.appendChild(mkSub("身體測量（後測）","green"));
-  const postNote2=document.createElement("div");postNote2.className="cite";postNote2.textContent="身高沿用基本資料，僅重新測量體重";postBody.appendChild(postNote2);
-  const pg=document.createElement("div");pg.className="grid3";
-  pg.appendChild(mkRow("體重",mkI("post_weight",{w:"65px",unit:"kg"})));
-  const pbv=document.createElement("div");pbv.className="auto-val";pbv.id="post_bmi_val";pbv.textContent=F.post_bmi?F.post_bmi+" kg/m²":"—";
-  pg.appendChild(mkRow("BMI",pbv));
-  const hwNote=document.createElement("div");hwNote.style.cssText="font-size:11px;color:var(--text3);padding:2px 0";hwNote.textContent="身高：沿用基本資料";
-  pg.appendChild(mkRow("身高",hwNote));
-  postBody.appendChild(pg);post.appendChild(postBody);
-  buildSGA("post_",post);
-  buildSUS(post);
-  const postNote=document.createElement("div");postNote.className="card";postNote.appendChild(mkRow("備註",mkI("post_notes",{ph:"後測觀察紀錄..."})));post.appendChild(postNote);
-}
-
-// === Tabs ===
-function switchTab(t){curTab=t;document.querySelectorAll(".tab-content").forEach(el=>el.classList.add("hidden"));document.getElementById("tab-"+t).classList.remove("hidden");document.querySelectorAll("#tabbar .tab").forEach(el=>el.classList.toggle("active",el.dataset.tab===t))}
-function updateTabbar(){
-  const bar=document.getElementById("tabbar");bar.innerHTML="";
-  [["basic","📋 基本資料",""],["pre","🔵 前測",""],["post","🟢 後測＋SUS","g"]].forEach(([k,l,c])=>{
-    const b=document.createElement("button");b.className="tab "+(c||"")+(curTab===k?" active":"");b.textContent=l;b.dataset.tab=k;b.addEventListener("click",()=>switchTab(k));bar.appendChild(b);
+  const s3=document.createElement("div");s3.id="sec_post";s3.className=curTab==="post"?"":"hidden";
+  let cpo=mkCard("後測評估","green");
+  cpo.appendChild(mkRow("後測日期",mkI("postDate",{type:"date"})));
+  const pwR=document.createElement("div");pwR.className="row";
+  pwR.appendChild(Object.assign(document.createElement("div"),{className:"lbl",textContent:"體重(kg)"}));
+  pwR.appendChild(mkI("postWeight",{type:"number",onChange:()=>calcBMI("height","postWeight","postBmi")}));
+  pwR.appendChild(Object.assign(document.createElement("div"),{className:"lbl",textContent:"BMI",style:"min-width:35px"}));
+  pwR.appendChild(mkAuto("postBmi","green"));cpo.appendChild(pwR);calcBMI("height","postWeight","postBmi");
+  cpo.appendChild(mkSub("生化檢驗值","green"));
+  [["postEgfr","eGFR","mL/min/1.73m²"],["postAlb","Albumin","g/dL"],["postK","K（鉀）","mEq/L"],["postP","P（磷）","mg/dL"],["postHb","Hb","g/dL"]].forEach(([k,l,u])=>{cpo.appendChild(mkRow(l,mkI(k,{type:"number",ph:u,step:"0.01"}),true))});
+  buildSGA(cpo,false);
+  // Post 24hr
+  cpo.appendChild(mkSub("24小時飲食紀錄","green"));cpo.appendChild(mkNote("若病人有完整系統紀錄可跳過"));
+  const pdt=document.createElement("table");pdt.className="diet-table";const pdh=document.createElement("tr");["餐次","食物品項與份量"].forEach(h=>{const th=document.createElement("th");th.textContent=h;pdh.appendChild(th)});pdt.appendChild(pdh);
+  MEALS.forEach(m=>{const tr=document.createElement("tr");const td1=document.createElement("td");td1.style.cssText="width:70px;font-weight:600";td1.textContent=m;tr.appendChild(td1);const td2=document.createElement("td");td2.appendChild(mkTA("postDiet_"+m,"輸入食物..."));tr.appendChild(td2);pdt.appendChild(tr)});cpo.appendChild(pdt);
+  // Post achieve (target range vs actual)
+  cpo.appendChild(mkSub("攝取達成率（目標 vs 後測實際）","green"));
+  cpo.appendChild(mkNote("目標值自動帶入目標設定頁"));
+  ALL_T.forEach(t=>{
+    const r=document.createElement("div");r.className="range-row";
+    r.appendChild(Object.assign(document.createElement("div"),{className:"lbl",textContent:t.e+" "+t.l}));
+    const tlo=F["t_"+t.k+"_lo"]||"—",thi=F["t_"+t.k+"_hi"]||"—";
+    r.appendChild(Object.assign(document.createElement("span"),{className:"auto-val orange",textContent:tlo+" ~ "+thi,style:"font-size:12px;min-width:100px"}));
+    r.appendChild(Object.assign(document.createElement("span"),{className:"unit",textContent:t.u}));
+    const ak="postActual_"+t.k;
+    r.appendChild(Object.assign(document.createElement("span"),{className:"unit",textContent:"實際:"}));
+    const ac=document.createElement("input");ac.type="number";ac.step="0.1";ac.value=F[ak]||"";ac.style.width="70px";ac.addEventListener("input",()=>{F[ak]=ac.value;updPostAch()});r.appendChild(ac);
+    const ach=document.createElement("span");ach.id="ach_post_"+t.k;ach.className="achieve";ach.textContent="—";r.appendChild(ach);
+    cpo.appendChild(r);
   });
-  const lb=document.createElement("button");lb.className="tab";lb.textContent="📁 列表("+recs.length+")";lb.addEventListener("click",showList);bar.appendChild(lb);
-  const nb=document.createElement("button");nb.className="btn-new-prominent";nb.style.cssText="padding:8px 18px;font-size:13px;border-radius:20px;margin-left:4px";nb.innerHTML='<span class="icon">＋</span>新增個案';
-  nb.addEventListener("click",()=>{F=newF();editIdx=null;buildForm();switchTab("basic");updateTabbar()});
-  bar.appendChild(nb);
-}
+  const updPostAch=()=>{ALL_T.forEach(t=>{const lo=parseFloat(F["t_"+t.k+"_lo"]),hi=parseFloat(F["t_"+t.k+"_hi"]),ac=parseFloat(F["postActual_"+t.k]);const el=document.getElementById("ach_post_"+t.k);if(!el)return;if(isNaN(lo)||isNaN(hi)||isNaN(ac)){el.textContent="—";el.className="achieve";return}if(ac>=lo&&ac<=hi){el.textContent="✓ 達成";el.className="achieve ok"}else{el.textContent="✗ 未達";el.className="achieve ng"}})};updPostAch();
+  cpo.appendChild(mkRow("後測備註",mkTA("postNote","其他觀察記錄...")));
+  s3.appendChild(cpo);area.appendChild(s3);
 
-// === Export XLSX ===
-function exportXLSX(){
-  if(!recs.length)return flash("尚無紀錄");
-  const keys=Object.keys(newF());
-  const header=keys;
-  const data=[header];
-  recs.forEach(r=>{data.push(keys.map(k=>{let v=r[k]??"";if(Array.isArray(v))v=v.join(";");return v}))});
-  const wsData=XLSX.utils.aoa_to_sheet(data);
-  // column widths
-  wsData['!cols']=keys.map(k=>({wch:Math.max(k.length+2,12)}));
-  const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,wsData,"CRF");
-  XLSX.writeFile(wb,"CRF_"+new Date().toISOString().slice(0,10)+".xlsx");
-}
-
-// === Import XLSX ===
-function importXLSX(){
-  const inp=document.createElement("input");inp.type="file";inp.accept=".xlsx,.xls,.csv";
-  inp.addEventListener("change",e=>{
-    const file=e.target.files[0];if(!file)return;
-    const reader=new FileReader();
-    reader.onload=function(ev){
-      try{
-        const wb=XLSX.read(ev.target.result,{type:"array"});
-        const ws=wb.Sheets[wb.SheetNames[0]];
-        const rows=XLSX.utils.sheet_to_json(ws,{defval:""});
-        if(!rows.length)return flash("檔案沒有資料");
-        const template=newF();let added=0,updated=0;
-        rows.forEach(row=>{
-          const rec={...template};
-          Object.keys(row).forEach(k=>{if(k in rec){
-            let v=row[k];
-            if(Array.isArray(rec[k]))rec[k]=typeof v==="string"&&v?v.split(";"):[];
-            else rec[k]=String(v);
-          }});
-          if(!rec.subjectId)return;
-          const idx=recs.findIndex(r=>r.subjectId===rec.subjectId);
-          if(idx>=0){recs[idx]=rec;updated++}else{recs.push(rec);added++}
-        });
-        persist();flash("匯入完成：新增 "+added+" 筆，更新 "+updated+" 筆");
-        listBuilt=false;showList();
-      }catch(err){flash("匯入失敗："+err.message)}
-    };
-    reader.readAsArrayBuffer(file);
+  // SUS
+  const s4=document.createElement("div");s4.id="sec_sus";s4.className=curTab==="sus"?"":"hidden";
+  let cs=mkCard("SUS 系統使用性量表","green");
+  // SUS scale header with labels aligned to pills
+  const susScale=document.createElement("div");susScale.style.cssText="display:flex;justify-content:flex-end;gap:6px;margin-bottom:12px;padding-right:4px";
+  ["非常不同意","不同意","普通","同意","非常同意"].forEach(t=>{
+    const sp=document.createElement("span");sp.style.cssText="width:50px;text-align:center;font-size:11px;color:var(--text3);font-weight:500";sp.textContent=t;susScale.appendChild(sp);
   });
-  inp.click();
-}
-
-// === List (Summary Table) ===
-let listFilter="";
-let listBuilt=false;
-function showList(){
-  document.getElementById("page-form").classList.add("hidden");
-  const list=document.getElementById("page-list");list.classList.remove("hidden");
-  
-  if(!listBuilt){
-    list.innerHTML="";
-    // Header
-    const hd=document.createElement("div");hd.style.cssText="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px";
-    const tt=document.createElement("h2");tt.id="list-title";tt.style.cssText="font-size:18px;color:var(--blue);margin:0;font-family:'Noto Serif TC',serif";tt.textContent="個案總表（"+recs.length+" 筆）";
-    const btns=document.createElement("div");btns.style.cssText="display:flex;gap:6px;flex-wrap:wrap";
-    const bN=document.createElement("button");bN.className="btn-new-prominent";bN.innerHTML='<span class="icon">＋</span> 新增個案';bN.addEventListener("click",()=>{F=newF();editIdx=null;buildForm();showForm();switchTab("basic");updateTabbar()});
-    const bE=document.createElement("button");bE.className="btn btn-s b-green";bE.textContent="⬇ 匯出 Excel";bE.addEventListener("click",exportXLSX);
-    const bI=document.createElement("button");bI.className="btn btn-s b-blue";bI.textContent="⬆ 匯入 Excel";bI.addEventListener("click",importXLSX);
-    const bR=document.createElement("button");bR.className="btn btn-s b-red";bR.textContent="清除全部";bR.addEventListener("click",()=>{if(!confirm("確定清除所有紀錄？"))return;recs=[];persist();listFilter="";if(document.getElementById("list-search"))document.getElementById("list-search").value="";renderTable();const t=document.getElementById("list-title");if(t)t.textContent="個案總表（0 筆）"});
-    btns.append(bN,bE,bI,bR);hd.append(tt,btns);list.appendChild(hd);
-
-    // Search box (built once, never destroyed)
-    const searchWrap=document.createElement("div");searchWrap.style.cssText="margin-bottom:12px;display:flex;align-items:center;gap:8px";
-    const searchIcon=document.createElement("span");searchIcon.textContent="🔍";searchIcon.style.fontSize="18px";searchWrap.appendChild(searchIcon);
-    const si=document.createElement("input");si.type="text";si.id="list-search";si.placeholder="搜尋編號、姓名、LINE ID...";si.value=listFilter;
-    si.style.cssText="flex:1;border:1.5px solid var(--border);border-radius:10px;padding:10px 14px;font-size:14px;font-family:inherit;background:var(--card);transition:border .2s,box-shadow .2s";
-    si.addEventListener("input",function(){listFilter=this.value;renderTable()});
-    si.addEventListener("focus",function(){this.style.borderColor="var(--blue2)";this.style.boxShadow="0 0 0 3px rgba(37,99,160,.12)"});
-    si.addEventListener("blur",function(){this.style.borderColor="var(--border)";this.style.boxShadow="none"});
-    searchWrap.appendChild(si);
-    window._searchInp=si;
-    list.appendChild(searchWrap);
-
-    // Table container (only this part re-renders on search)
-    const tableContainer=document.createElement("div");tableContainer.id="table-container";
-    list.appendChild(tableContainer);
-
-    // Legend
-    const legend=document.createElement("div");legend.id="list-legend";legend.style.cssText="font-size:10px;color:var(--text3);margin-top:8px;text-align:center;line-height:1.6";
-    legend.innerHTML="SGA：<span style='color:#166534'>■</span> 6-7良好　<span style='color:#b45309'>■</span> 3-5輕中度PEW　<span style='color:#b91c1c'>■</span> 1-2重度PEW　｜　SUS：<span style='color:#166534'>■</span>≥80優秀　<span style='color:#2563a0'>■</span>≥68可接受　<span style='color:#b91c1c'>■</span>&lt;68偏低";
-    list.appendChild(legend);
-    listBuilt=true;
-  }
-  
-  // Update title count
-  const titleEl=document.getElementById("list-title");
-  if(titleEl)titleEl.textContent="個案總表（"+recs.length+" 筆）";
-  
-  renderTable();
-  setTimeout(()=>{const si=document.getElementById("list-search");if(si)si.focus()},50);
-}
-
-function renderTable(){
-  const container=document.getElementById("table-container");
-  if(!container)return;
-  container.innerHTML="";
-
-  const kw=listFilter.toLowerCase().trim();
-  const filtered=recs.map((r,i)=>({r,i})).filter(({r})=>{
-    if(!kw)return true;
-    return (r.subjectId||"").toLowerCase().includes(kw)||(r.subjectName||"").toLowerCase().includes(kw)||(r.lineId||"").toLowerCase().includes(kw);
-  });
-
-  if(!recs.length){container.appendChild(Object.assign(document.createElement("p"),{className:"empty",textContent:"尚無紀錄，點擊「新增」開始收案"}));return}
-  if(recs.length&&!filtered.length){container.appendChild(Object.assign(document.createElement("p"),{className:"empty",textContent:"找不到符合「"+listFilter+"」的個案"}));return}
-
-  // Summary table
-  const tableWrap=document.createElement("div");tableWrap.style.cssText="overflow-x:auto;border-radius:10px;box-shadow:var(--shadow)";
-  const table=document.createElement("table");table.style.cssText="width:100%;border-collapse:collapse;background:#fff;font-size:12px;white-space:nowrap";
-  
-  // Header row
-  const thead=document.createElement("thead");
-  const hr=document.createElement("tr");
-  ["","編號","姓名","CKD","前測日","eGFR₀","Alb₀","SGA₀","後測日","eGFR₁","Alb₁","SGA₁","SUS",""].forEach(h=>{
-    const th=document.createElement("th");
-    th.textContent=h;
-    th.style.cssText="padding:8px 6px;background:var(--blue);color:#fff;font-weight:600;text-align:center;font-size:11px;letter-spacing:.3px;border-bottom:2px solid #fff";
-    hr.appendChild(th);
-  });
-  thead.appendChild(hr);table.appendChild(thead);
-
-  // Data rows
-  const tbody=document.createElement("tbody");
-  filtered.forEach(({r,i:origIdx},dispIdx)=>{
-    const tr=document.createElement("tr");
-    tr.style.cssText="border-bottom:1px solid #f0f0f0;transition:background .1s";
-    tr.addEventListener("mouseenter",()=>tr.style.background="#f8fafc");
-    tr.addEventListener("mouseleave",()=>tr.style.background="");
-
-    // Row number
-    const tdNum=document.createElement("td");tdNum.style.cssText="padding:8px 6px;text-align:center;color:var(--text3);font-size:11px";tdNum.textContent=dispIdx+1;tr.appendChild(tdNum);
-
-    // Data cells
-    const vals=[
-      r.subjectId||"—",
-      r.subjectName||"",
-      r.ckdStage?r.ckdStage.replace("Stage ",""):"—",
-      r.pre_date?r.pre_date.slice(5):"—",
-      r.pre_egfr||"—",
-      r.pre_albumin||"—",
-      r.pre_sgaScore||"—",
-      r.post_date?r.post_date.slice(5):"—",
-      r.post_egfr||"—",
-      r.post_albumin||"—",
-      r.post_sgaScore||"—",
-      r.sus_total||"—"
-    ];
-    vals.forEach((v,j)=>{
-      const td=document.createElement("td");
-      td.style.cssText="padding:8px 6px;text-align:center";
-      if(j===0){td.style.fontWeight="700";td.style.color="var(--blue)"}
-      if(j===1){td.style.textAlign="left"}
-      // Color SGA
-      if(j===6||j===10){
-        const n=parseInt(v);
-        if(n>=6)td.style.color="#166534";
-        else if(n>=3)td.style.color="#b45309";
-        else if(n>=1)td.style.color="#b91c1c";
-      }
-      // Color SUS
-      if(j===11){
-        const n=parseFloat(v);
-        if(n>=80)td.style.cssText+="color:#166534;font-weight:700";
-        else if(n>=68)td.style.cssText+="color:#2563a0;font-weight:600";
-        else if(n>0)td.style.cssText+="color:#b91c1c";
-      }
-      td.textContent=v;tr.appendChild(td);
+  cs.appendChild(susScale);
+  SUS_Q.forEach((q,i)=>{
+    const row=document.createElement("div");row.style.cssText="margin-bottom:12px";
+    const ql=document.createElement("div");ql.style.cssText="font-size:13px;font-weight:500;color:var(--text2);margin-bottom:6px";ql.textContent=(i+1)+". "+q;row.appendChild(ql);
+    const pd=document.createElement("div");pd.style.cssText="display:flex;justify-content:flex-end;gap:6px";
+    ["1","2","3","4","5"].forEach(v=>{
+      const b=document.createElement("button");b.type="button";b.style.cssText="width:50px;height:36px;border-radius:10px;border:1.5px solid var(--border);background:var(--card);color:var(--text2);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s";
+      if(F["sus"+(i+1)]===v){b.style.background="var(--green)";b.style.color="#fff";b.style.borderColor="var(--green)"}
+      b.textContent=v;
+      b.addEventListener("click",()=>{F["sus"+(i+1)]=v;pd.querySelectorAll("button").forEach(p=>{p.style.background="var(--card)";p.style.color="var(--text2)";p.style.borderColor="var(--border)"});b.style.background="var(--green)";b.style.color="#fff";b.style.borderColor="var(--green)";setTimeout(calcSUS,50)});
+      pd.appendChild(b);
     });
-
-    // Action buttons
-    const tdAct=document.createElement("td");tdAct.style.cssText="padding:6px;text-align:center";
-    const be=document.createElement("button");be.className="btn btn-s b-blue";be.textContent="編輯";be.style.marginRight="3px";
-    be.addEventListener("click",()=>{F={...recs[origIdx]};["pre_gi","pre_edema","post_gi","post_edema","supplementItems"].forEach(k=>{F[k]=[...(F[k]||[])]});editIdx=origIdx;buildForm();showForm();switchTab("basic");updateTabbar()});
-    const bd=document.createElement("button");bd.className="btn btn-s b-gray";bd.textContent="刪";
-    bd.addEventListener("click",()=>{if(!confirm("確定刪除 "+r.subjectId+"？"))return;recs.splice(origIdx,1);persist();renderTable();const t=document.getElementById("list-title");if(t)t.textContent="個案總表（"+recs.length+" 筆）"});
-    tdAct.append(be,bd);tr.appendChild(tdAct);
-    tbody.appendChild(tr);
+    row.appendChild(pd);cs.appendChild(row);
   });
-  table.appendChild(tbody);tableWrap.appendChild(table);container.appendChild(tableWrap);
+  const calcSUS=()=>{const v=SUS_Q.map((_,i)=>parseInt(F["sus"+(i+1)])||0);if(v.some(x=>x===0)){F.susScore="";const el=document.getElementById("auto_susScore");if(el)el.textContent="—";return}let s=0;v.forEach((x,i)=>{s+=(i%2===0)?(x-1):(5-x)});const sc=(s*2.5).toFixed(1);F.susScore=sc;const el=document.getElementById("auto_susScore");if(el){let g="";const n=parseFloat(sc);if(n>=80.3)g="A (優秀)";else if(n>=68)g="C (可接受)";else g="F (需改善)";el.textContent=sc+" — "+g}};
+  const susR=document.createElement("div");susR.className="row";susR.appendChild(Object.assign(document.createElement("div"),{className:"lbl wide",textContent:"SUS 分數"}));susR.appendChild(mkAuto("susScore","green"));cs.appendChild(susR);
+  s4.appendChild(cs);area.appendChild(s4);
+  calcSUS();
+
+  // Actions
+  const acts=document.createElement("div");acts.className="actions";
+  const saveBtn=document.createElement("button");saveBtn.className="btn btn-blue";saveBtn.textContent="💾 儲存";
+  saveBtn.addEventListener("click",()=>{
+    if(!F.subjectId)return flash("請先填寫受試者編號");
+    const ex=recs.findIndex(r=>r.subjectId===F.subjectId);
+    if(editIdx!==null){recs[editIdx]={...F}}
+    else if(ex>=0){recs[ex]={...F};editIdx=ex}
+    else{recs.push({...F});editIdx=recs.length-1}
+    persist();flash("✓ 已儲存 "+F.subjectId);updateTabbar();
+  });acts.appendChild(saveBtn);
+  const newBtn=document.createElement("button");newBtn.className="btn btn-gray";newBtn.textContent="＋ 新增";newBtn.addEventListener("click",()=>{F=newF();editIdx=null;buildForm();switchTab("basic");updateTabbar()});acts.appendChild(newBtn);
+  const listBtn=document.createElement("button");listBtn.className="btn btn-gray";listBtn.textContent="📁 總表";listBtn.addEventListener("click",showList);acts.appendChild(listBtn);
+  const expBtn=document.createElement("button");expBtn.className="btn btn-green";expBtn.textContent="⬇ Excel";expBtn.addEventListener("click",exportXLSX);acts.appendChild(expBtn);
+  area.appendChild(acts);
+  updateCond();
 }
 
-function showForm(){document.getElementById("page-form").classList.remove("hidden");document.getElementById("page-list").classList.add("hidden");listBuilt=false}
-
-// === Save / New ===
-document.getElementById("btn-save").addEventListener("click",()=>{
-  if(!F.subjectId)return flash("請先填寫受試者編號");
-  if(editIdx!==null){recs[editIdx]={...F}}else{recs.push({...F})}
-  persist();flash("✓ 已儲存");editIdx=null;updateTabbar();
-});
-document.getElementById("btn-new").addEventListener("click",()=>{F=newF();editIdx=null;buildForm();switchTab("basic");updateTabbar()});
-
-// === Init ===
-buildForm();updateTabbar();switchTab("basic");
+function switchTab(id){curTab=id;TABS.forEach(t=>{const s=document.getElementById("sec_"+t.id);if(s)s.className=t.id===id?"":"hidden"});document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.tid===id))}
+function updateTabbar(){const bar=document.getElementById("tabbar");bar.innerHTML="";TABS.forEach(t=>{const b=document.createElement("button");b.className="tab"+(t.cls?" "+t.cls:"")+(curTab===t.id?" active":"");b.textContent=t.label;b.dataset.tid=t.id;b.addEventListener("click",()=>switchTab(t.id));bar.appendChild(b)});const lb=document.createElement("button");lb.className="tab";lb.textContent="📁 總表("+recs.length+")";lb.addEventListener("click",showList);bar.appendChild(lb)}
+function showList(){
+  document.getElementById("formArea").className="hidden";const area=document.getElementById("listArea");area.className="";area.innerHTML="";
+  const h=document.createElement("h2");h.style.cssText="text-align:center;color:var(--blue);margin:16px 0 8px;font-size:18px";h.textContent="個案總表 ("+recs.length+"筆)";area.appendChild(h);
+  const aR=document.createElement("div");aR.style.cssText="display:flex;gap:8px;justify-content:center;margin:12px 0;flex-wrap:wrap";
+  const nB=document.createElement("button");nB.className="btn btn-new";nB.textContent="＋ 新增個案";nB.addEventListener("click",()=>{F=newF();editIdx=null;document.getElementById("formArea").className="";area.className="hidden";buildForm();switchTab("basic");updateTabbar()});aR.appendChild(nB);
+  const eB=document.createElement("button");eB.className="btn btn-green";eB.textContent="⬇ 匯出Excel";eB.addEventListener("click",exportXLSX);aR.appendChild(eB);
+  const iB=document.createElement("button");iB.className="btn btn-gray";iB.textContent="⬆ 匯入";const iI=document.createElement("input");iI.type="file";iI.accept=".xlsx,.csv";iI.style.display="none";iI.addEventListener("change",importFile);iB.addEventListener("click",()=>iI.click());aR.appendChild(iB);aR.appendChild(iI);
+  area.appendChild(aR);
+  if(recs.length===0){area.appendChild(Object.assign(document.createElement("div"),{style:"text-align:center;color:var(--text3);padding:40px",textContent:"尚無個案資料"}));return}
+  // Search
+  const sR=document.createElement("div");sR.style.cssText="margin:8px 0 12px;display:flex;justify-content:center";
+  const sI=document.createElement("input");sI.type="text";sI.placeholder="🔍 搜尋編號或姓名...";sI.style.cssText="width:280px;padding:10px 16px;border:1.5px solid var(--border);border-radius:24px;font-size:13px;font-family:inherit;background:var(--card);text-align:center";sR.appendChild(sI);area.appendChild(sR);
+  const wrap=document.createElement("div");wrap.style.overflowX="auto";
+  const tbl=document.createElement("table");tbl.className="list-table";
+  const thead=document.createElement("tr");["#","編號","姓名","CKD","前eGFR","前Alb","前SGA","後eGFR","後Alb","後SGA","SUS","操作"].forEach(h=>{const th=document.createElement("th");th.textContent=h;thead.appendChild(th)});tbl.appendChild(thead);
+  recs.forEach((r,i)=>{const tr=document.createElement("tr");[i+1,r.subjectId,r.name,r.ckdStage,r.preEgfr,r.preAlb,r.sgaRating,r.postEgfr,r.postAlb,r.postSgaRating,r.susScore].forEach(v=>{const td=document.createElement("td");td.textContent=v||"—";tr.appendChild(td)});
+    const td=document.createElement("td");const eb=document.createElement("button");eb.className="act-btn";eb.textContent="編輯";eb.addEventListener("click",()=>{F={...recs[i]};editIdx=i;document.getElementById("formArea").className="";area.className="hidden";buildForm();switchTab("basic");updateTabbar()});
+    const db=document.createElement("button");db.className="act-btn";db.style.marginLeft="4px";db.textContent="刪除";db.addEventListener("click",()=>{if(confirm("確定刪除？")){recs.splice(i,1);persist();showList()}});td.appendChild(eb);td.appendChild(db);tr.appendChild(td);tbl.appendChild(tr)});
+  wrap.appendChild(tbl);area.appendChild(wrap);
+  sI.addEventListener("input",()=>{const q=sI.value.toLowerCase().trim();tbl.querySelectorAll("tr").forEach((tr,i)=>{if(i===0)return;const t=(tr.children[1]?.textContent||"")+(tr.children[2]?.textContent||"");tr.style.display=t.toLowerCase().includes(q)?"":"none"})});
+}
+function showForm(){document.getElementById("formArea").className="";document.getElementById("listArea").className="hidden"}
+function exportXLSX(){if(recs.length===0)return flash("無資料可匯出");const ws=XLSX.utils.json_to_sheet(recs);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"CRF");XLSX.writeFile(wb,"CRF_營養腎隊友_"+new Date().toISOString().slice(0,10)+".xlsx");flash("✓ 已匯出 Excel")}
+function importFile(e){const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=function(evt){try{const wb=XLSX.read(evt.target.result,{type:"array"});const ws=wb.Sheets[wb.SheetNames[0]];const data=XLSX.utils.sheet_to_json(ws);if(data.length>0){let updated=0,added=0;data.forEach(d=>{if(!d.subjectId)return;const idx=recs.findIndex(r=>r.subjectId===d.subjectId);if(idx>=0){recs[idx]=d;updated++}else{recs.push(d);added++}});persist();flash("✓ 合併完成：更新 "+updated+" 筆，新增 "+added+" 筆");showList()}}catch(err){flash("匯入失敗："+err.message)}};reader.readAsArrayBuffer(file);e.target.value=""}
+buildForm();updateTabbar();
 </script>
 </body>
 </html>
