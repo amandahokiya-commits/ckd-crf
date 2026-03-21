@@ -408,6 +408,39 @@ function exportXLSX(){
   XLSX.writeFile(wb,"CRF_"+new Date().toISOString().slice(0,10)+".xlsx");
 }
 
+// === Import XLSX ===
+function importXLSX(){
+  const inp=document.createElement("input");inp.type="file";inp.accept=".xlsx,.xls,.csv";
+  inp.addEventListener("change",e=>{
+    const file=e.target.files[0];if(!file)return;
+    const reader=new FileReader();
+    reader.onload=function(ev){
+      try{
+        const wb=XLSX.read(ev.target.result,{type:"array"});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        const rows=XLSX.utils.sheet_to_json(ws,{defval:""});
+        if(!rows.length)return flash("檔案沒有資料");
+        const template=newF();let added=0,updated=0;
+        rows.forEach(row=>{
+          const rec={...template};
+          Object.keys(row).forEach(k=>{if(k in rec){
+            let v=row[k];
+            if(Array.isArray(rec[k]))rec[k]=typeof v==="string"&&v?v.split(";"):[];
+            else rec[k]=String(v);
+          }});
+          if(!rec.subjectId)return;
+          const idx=recs.findIndex(r=>r.subjectId===rec.subjectId);
+          if(idx>=0){recs[idx]=rec;updated++}else{recs.push(rec);added++}
+        });
+        persist();flash("匯入完成：新增 "+added+" 筆，更新 "+updated+" 筆");
+        listBuilt=false;showList();
+      }catch(err){flash("匯入失敗："+err.message)}
+    };
+    reader.readAsArrayBuffer(file);
+  });
+  inp.click();
+}
+
 // === List (Summary Table) ===
 let listFilter="";
 let listBuilt=false;
@@ -423,8 +456,9 @@ function showList(){
     const btns=document.createElement("div");btns.style.cssText="display:flex;gap:6px;flex-wrap:wrap";
     const bN=document.createElement("button");bN.className="btn-new-prominent";bN.innerHTML='<span class="icon">＋</span> 新增個案';bN.addEventListener("click",()=>{F=newF();editIdx=null;buildForm();showForm();switchTab("basic");updateTabbar()});
     const bE=document.createElement("button");bE.className="btn btn-s b-green";bE.textContent="⬇ 匯出 Excel";bE.addEventListener("click",exportXLSX);
-    const bR=document.createElement("button");bR.className="btn btn-s b-red";bR.textContent="清除全部";bR.addEventListener("click",()=>{if(!confirm("確定清除所有紀錄？"))return;recs=[];persist();listFilter="";searchInp.value="";renderTable()});
-    btns.append(bN,bE,bR);hd.append(tt,btns);list.appendChild(hd);
+    const bI=document.createElement("button");bI.className="btn btn-s b-blue";bI.textContent="⬆ 匯入 Excel";bI.addEventListener("click",importXLSX);
+    const bR=document.createElement("button");bR.className="btn btn-s b-red";bR.textContent="清除全部";bR.addEventListener("click",()=>{if(!confirm("確定清除所有紀錄？"))return;recs=[];persist();listFilter="";if(document.getElementById("list-search"))document.getElementById("list-search").value="";renderTable();const t=document.getElementById("list-title");if(t)t.textContent="個案總表（0 筆）"});
+    btns.append(bN,bE,bI,bR);hd.append(tt,btns);list.appendChild(hd);
 
     // Search box (built once, never destroyed)
     const searchWrap=document.createElement("div");searchWrap.style.cssText="margin-bottom:12px;display:flex;align-items:center;gap:8px";
