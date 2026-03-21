@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>營養腎隊友 CRF</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Noto+Serif+TC:wght@700&display=swap');
+:root{
+  --blue:#1a3f6b;--blue2:#2563a0;--green:#1b6b3a;--green2:#22964f;
+  --bg:#f0f2f5;--card:#fff;--input-bg:#fafcff;--label-bg:#f4f6f9;
+  --border:#e2e5ea;--text:#2d3748;--text2:#64748b;--text3:#94a3b8;
+  --radius:10px;--shadow:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.app{max-width:680px;margin:0 auto;padding:12px 16px 60px}
+
+/* Header */
+.header{text-align:center;padding:20px 0 12px}
+.header h1{font-family:'Noto Serif TC',serif;font-size:22px;color:var(--blue);letter-spacing:2px}
+.header p{font-size:11px;color:var(--text3);margin-top:2px;letter-spacing:.5px}
+
+/* Tabs */
+.tabs{display:flex;gap:6px;justify-content:center;margin:12px 0 16px;flex-wrap:wrap}
+.tab{padding:9px 20px;border-radius:24px;border:1.5px solid var(--border);background:var(--card);color:var(--text2);font-weight:500;font-size:13px;cursor:pointer;font-family:inherit;transition:all .2s;letter-spacing:.3px}
+.tab:hover{border-color:var(--blue2);color:var(--blue)}
+.tab.active{background:var(--blue);color:#fff;border-color:var(--blue);box-shadow:0 2px 8px rgba(26,63,107,.25)}
+.tab.g.active{background:var(--green);border-color:var(--green);box-shadow:0 2px 8px rgba(27,107,58,.25)}
+
+/* Cards */
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden}
+
+/* Section headers */
+.sec{padding:10px 18px;font-weight:700;font-size:14px;color:#fff;letter-spacing:.8px;display:flex;align-items:center;gap:8px}
+.sec.blue{background:linear-gradient(135deg,#1a3f6b,#2563a0)}.sec.green{background:linear-gradient(135deg,#1b6b3a,#22964f)}.sec.dark{background:linear-gradient(135deg,#334155,#475569)}
+.sec small{font-weight:400;font-size:11px;opacity:.8}
+
+.sub{padding:7px 18px;font-weight:600;font-size:12.5px;color:var(--blue);background:#eef2f7;border-bottom:1px solid var(--border);letter-spacing:.3px}
+.sub.green{color:var(--green);background:#eef7f0}
+
+/* Rows */
+.row{display:flex;border-bottom:1px solid #f1f3f5;min-height:42px}
+.row:last-child{border-bottom:none}
+.row-label{min-width:108px;width:108px;padding:8px 12px;font-weight:500;font-size:12px;color:var(--text2);background:var(--label-bg);display:flex;align-items:center;border-right:1px solid #f1f3f5}
+.row-content{flex:1;padding:6px 12px;display:flex;align-items:center;flex-wrap:wrap;gap:4px}
+
+/* Inputs */
+input[type=text],input[type=number],input[type=date]{
+  border:1.5px solid var(--border);border-radius:7px;padding:6px 10px;font-size:13px;font-family:inherit;
+  background:var(--input-bg);transition:border .2s,box-shadow .2s;color:var(--text)}
+input:focus{outline:none;border-color:var(--blue2);box-shadow:0 0 0 3px rgba(37,99,160,.1)}
+
+/* Pills */
+.pills{display:flex;flex-wrap:wrap;gap:4px}
+.pill{padding:5px 14px;border-radius:20px;border:1.5px solid var(--border);background:var(--card);color:var(--text2);font-size:12.5px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .15s;letter-spacing:.2px}
+.pill:hover{border-color:var(--blue2);color:var(--blue)}
+.pill.on{background:var(--blue);color:#fff;border-color:var(--blue)}.pill.on-g{background:var(--green);color:#fff;border-color:var(--green)}
+.pill.sus{min-width:40px;text-align:center;justify-content:center;display:inline-flex}
+
+/* Grid */
+.grid2{display:grid;grid-template-columns:1fr 1fr}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr}
+
+.inline{display:inline-flex;align-items:center;gap:4px}
+.unit{font-size:11px;color:var(--text3);white-space:nowrap}
+.cite{font-size:9.5px;color:var(--text3);padding:4px 18px 8px;line-height:1.5;font-style:italic}
+.auto-val{font-weight:700;color:var(--blue);font-size:15px}
+
+/* Buttons */
+.btn{color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:14px;cursor:pointer;font-family:inherit;font-weight:600;transition:all .15s;letter-spacing:.3px}
+.btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.15)}
+.btn-s{padding:5px 14px;font-size:12px;border-radius:7px}
+.b-blue{background:var(--blue)}.b-green{background:var(--green)}.b-red{background:#b91c1c}.b-gray{background:#64748b}
+.actions{display:flex;gap:10px;justify-content:center;margin:24px 0 8px;flex-wrap:wrap}
+
+/* Toast */
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-20px);background:var(--green);color:#fff;padding:10px 28px;border-radius:10px;font-weight:600;z-index:999;opacity:0;transition:all .3s;box-shadow:0 4px 16px rgba(0,0,0,.15)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* List cards */
+.rec-card{border:1.5px solid var(--border);border-radius:var(--radius);padding:12px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;background:var(--card);transition:box-shadow .15s}
+.rec-card:hover{box-shadow:var(--shadow)}
+.rec-card b{color:var(--blue);font-size:14px}
+.rec-card .meta{font-size:12px;color:var(--text2)}
+.rec-card .sep{color:#ddd;margin:0 6px}
+.empty{text-align:center;color:var(--text3);padding:50px 20px;font-size:15px}
+.btn-new-prominent{
+  background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;border-radius:12px;
+  padding:12px 28px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;
+  box-shadow:0 4px 14px rgba(217,119,6,.35);letter-spacing:.5px;transition:all .2s;
+  display:inline-flex;align-items:center;gap:6px}
+.btn-new-prominent:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(217,119,6,.45)}
+.btn-new-prominent .icon{font-size:20px;line-height:1}
+
+.foot{text-align:center;font-size:10px;color:var(--text3);margin-top:10px;line-height:1.6}
+.sus-total{padding:10px 18px;font-size:16px;font-weight:700;color:var(--green);display:flex;align-items:center;gap:8px}
+.sus-badge{font-size:11px;padding:2px 10px;border-radius:12px;background:#dcfce7;color:#166534;font-weight:600}
+.hidden{display:none}
+.range-sep{font-size:14px;color:var(--text3);margin:0 2px}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="header">
+    <h1>營養腎隊友 個案紀錄表</h1>
+    <p>CRF v5.0 ∣ 一位個案＝一筆紀錄（基本＋前測＋後測＋SUS）</p>
+  </div>
+  <div class="tabs" id="tabbar"></div>
+  <div id="page-form">
+    <div id="tab-basic" class="tab-content"></div>
+    <div id="tab-pre" class="tab-content hidden"></div>
+    <div id="tab-post" class="tab-content hidden"></div>
+    <div class="actions">
+      <button class="btn b-blue" id="btn-save">💾 儲存紀錄</button>
+      <button class="btn b-gray" id="btn-new">清空表單</button>
+    </div>
+    <p class="foot">Part A 病歷擷取 ∣ Part B 研究評估（SGA＋身體測量＋SUS）<br>資料存於此瀏覽器 localStorage ∣ 匯出為 Excel 格式</p>
+  </div>
+  <div id="page-list" class="hidden"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const SK="ckd-crf-v5";
+const SUS=[
+  {id:1,t:"我覺得我會想要經常使用這個系統",p:true},
+  {id:2,t:"我發現這個系統太過於複雜",p:false},
+  {id:3,t:"我認為此系統容易進行操作",p:true},
+  {id:4,t:"我需要有人教才能使用這個系統",p:false},
+  {id:5,t:"我覺得這個系統各項功能搭配得很順",p:true},
+  {id:6,t:"我覺得這個系統有些部分落差很大",p:false},
+  {id:7,t:"我想大多數人應該很快就學會使用這個系統",p:true},
+  {id:8,t:"我發現此系統使用起來非常麻煩",p:false},
+  {id:9,t:"我對此系統的使用很有信心",p:true},
+  {id:10,t:"在開始使用系統之前需要先學很多東西",p:false},
+];
+let recs=JSON.parse(localStorage.getItem(SK)||"[]");
+let F=newF(), editIdx=null, curTab="basic";
+
+function newF(){return{subjectId:"",subjectName:"",lineId:"",assessor:"莊曉雯",consent:"",birthday:"",age:"",sex:"",height:"",weight:"",bmi:"",activity:"",education:"",phoneSkill:"",lineFreq:"",ckdStage:"",dm:"",htn:"",hyperlipidemia:"",otherComorbid:"",antihypertensive:"",antihypertensiveName:"",antidiabetic:"",antidiabeticName:"",lipidLowering:"",phosphateBinder:"",phosphateBinderName:"",supplement:"",supplementItems:[],supplementOther:"",otherMeds:"",tgt_cal_lo:"",tgt_cal_hi:"",tgt_pro_lo:"",tgt_pro_hi:"",tgt_fat_lo:"",tgt_fat_hi:"",tgt_cho_lo:"",tgt_cho_hi:"",tgt_water_lo:"",tgt_water_hi:"",tgt_na_lo:"",tgt_na_hi:"",tgt_phos_lo:"",tgt_phos_hi:"",tgt_k_lo:"",tgt_k_hi:"",tgt_grain_lo:"",tgt_grain_hi:"",tgt_protein_lo:"",tgt_protein_hi:"",tgt_veg_lo:"",tgt_veg_hi:"",tgt_fruit_lo:"",tgt_fruit_hi:"",tgt_dairy_lo:"",tgt_dairy_hi:"",tgt_oil_lo:"",tgt_oil_hi:"",pre_date:todayStr(),pre_labDate:"",pre_cr:"",pre_egfr:"",pre_bun:"",pre_albumin:"",pre_k:"",pre_p:"",pre_hb:"",pre_hba1c:"",pre_sgaScore:"",pre_w6mAgo:"",pre_wc6m:"",pre_wcPct:"",pre_wt2w:"",pre_diet:"",pre_dietDur:"",pre_dietType:"",pre_gi:[],pre_func:"",pre_fat:"",pre_muscle:"",pre_edema:[],pre_notes:"",post_date:"",post_labDate:"",post_cr:"",post_egfr:"",post_bun:"",post_albumin:"",post_k:"",post_p:"",post_hb:"",post_hba1c:"",post_weight:"",post_bmi:"",post_sgaScore:"",post_w6mAgo:"",post_wc6m:"",post_wcPct:"",post_wt2w:"",post_diet:"",post_dietDur:"",post_dietType:"",post_gi:[],post_func:"",post_fat:"",post_muscle:"",post_edema:[],post_notes:"",sus1:"",sus2:"",sus3:"",sus4:"",sus5:"",sus6:"",sus7:"",sus8:"",sus9:"",sus10:"",sus_total:""}}
+function persist(){localStorage.setItem(SK,JSON.stringify(recs))}
+function todayStr(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function flash(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2200)}
+function calcAge(){
+  if(!F.birthday){F.age="";const el=document.getElementById("age_val");if(el)el.textContent="";return}
+  const bd=new Date(F.birthday),today=new Date();
+  let a=today.getFullYear()-bd.getFullYear();
+  if(today.getMonth()<bd.getMonth()||(today.getMonth()===bd.getMonth()&&today.getDate()<bd.getDate()))a--;
+  F.age=String(a);
+  const el=document.getElementById("age_val");if(el)el.textContent=a+" 歲";
+}
+function calcBMI(pfx){
+  const hKey=pfx?"post_height":"height", wKey=pfx?"post_weight":"weight", bKey=pfx?"post_bmi":"bmi";
+  const hVal=pfx?F.height:F.height; // post uses baseline height
+  const h=parseFloat(hVal)/100, w=parseFloat(F[wKey]);
+  F[bKey]=h>0&&w>0?(w/(h*h)).toFixed(1):"";
+  const el=document.getElementById((pfx||"")+"bmi_val");
+  if(el)el.textContent=F[bKey]?F[bKey]+" kg/m²":"—";
+}
+function calcBasicBMI(){
+  const h=parseFloat(F.height)/100,w=parseFloat(F.weight);
+  F.bmi=h>0&&w>0?(w/(h*h)).toFixed(1):"";
+  const el=document.getElementById("bmi_val");if(el)el.textContent=F.bmi?F.bmi+" kg/m²":"—";
+}
+function calcPostBMI(){
+  const h=parseFloat(F.height)/100,w=parseFloat(F.post_weight);
+  F.post_bmi=h>0&&w>0?(w/(h*h)).toFixed(1):"";
+  const el=document.getElementById("post_bmi_val");if(el)el.textContent=F.post_bmi?F.post_bmi+" kg/m²":"—";
+}
+function calcSUS(){let t=0,n=0;SUS.forEach(s=>{const v=parseInt(F["sus"+s.id]);if(v>=1&&v<=5){n++;t+=s.p?(v-1):(5-v)}});F.sus_total=n===10?(t*2.5).toFixed(1):"";const el=document.getElementById("sus_total_val");if(el){el.textContent=F.sus_total?F.sus_total+" / 100":"—（需填完10題）";const b=document.getElementById("sus_badge");if(b)b.style.display=F.sus_total&&parseFloat(F.sus_total)>=68?"inline":""}}
+function onInput(k,el){F[k]=el.value;if(k==="birthday")calcAge();if(k==="height"||k==="weight"){calcBasicBMI();calcWcAuto("pre_")}if(k==="post_weight"){calcPostBMI();calcWcAuto("post_")}if(k==="pre_w6mAgo")calcWcAuto("pre_");if(k==="post_w6mAgo")calcWcAuto("post_")}
+function calcWcAuto(pfx){
+  const ago=parseFloat(F[pfx+"w6mAgo"]);
+  const now=pfx==="post_"?parseFloat(F.post_weight||F.weight):parseFloat(F.weight);
+  if(ago>0&&now>0){
+    const loss=(ago-now).toFixed(1);
+    const pct=(((ago-now)/ago)*100).toFixed(1);
+    F[pfx+"wc6m"]=loss;F[pfx+"wcPct"]=pct;
+    const elKg=document.getElementById(pfx+"wc6m_val");if(elKg)elKg.textContent=(loss>0?"-":"")+loss+" kg";
+    const elPct=document.getElementById(pfx+"wcPct_val");if(elPct)elPct.textContent=(pct>0?"-":"")+pct+" %";
+  } else {
+    F[pfx+"wc6m"]="";F[pfx+"wcPct"]="";
+    const elKg=document.getElementById(pfx+"wc6m_val");if(elKg)elKg.textContent="—";
+    const elPct=document.getElementById(pfx+"wcPct_val");if(elPct)elPct.textContent="—";
+  }
+}
+function onPill(k,v,c,g){F[k]=v;g.querySelectorAll(".pill").forEach(p=>{p.classList.remove("on","on-g");if(p.dataset.val===v)p.classList.add(c==="g"?"on-g":"on")});showCond()}
+function onCheck(k,v,b){const a=F[k]||[];if(a.includes(v)){F[k]=a.filter(x=>x!==v);b.classList.remove("on-g")}else{F[k]=[...a,v];b.classList.add("on-g")}
+  // handle "其他" conditional for supplement
+  if(k==="supplementItems"){
+    const hasOther=(F.supplementItems||[]).includes("其他");
+    document.querySelectorAll('[data-cond="supplementItems_has_other=1"]').forEach(el=>{el.style.display=hasOther?"":"none"});
+  }
+}
+function onSus(id,v,g){F["sus"+id]=String(v);g.querySelectorAll(".pill").forEach(p=>{p.classList.remove("on-g");if(p.dataset.val==v)p.classList.add("on-g")});calcSUS()}
+function showCond(){document.querySelectorAll("[data-cond]").forEach(el=>{const[f,v]=el.dataset.cond.split("=");el.style.display=F[f]===v?"":"none"})}
+
+// === DOM helpers ===
+function mkI(field,opts={}){const w=document.createElement("span");w.className="inline";const i=document.createElement("input");i.type=opts.type||"text";i.value=F[field]||"";i.placeholder=opts.ph||"";i.style.width=opts.w||"100%";i.dataset.field=field;i.addEventListener("input",function(){onInput(field,this)});w.appendChild(i);if(opts.unit){const u=document.createElement("span");u.className="unit";u.textContent=opts.unit;w.appendChild(u)}return w}
+function mkP(field,options,color){const d=document.createElement("div");d.className="pills";options.forEach(o=>{const b=document.createElement("button");b.className="pill";b.textContent=o;b.dataset.val=o;if(F[field]===o)b.classList.add(color==="g"?"on-g":"on");b.addEventListener("click",()=>onPill(field,o,color,d));d.appendChild(b)});return d}
+function mkC(field,options){const d=document.createElement("div");d.className="pills";options.forEach(o=>{const b=document.createElement("button");b.className="pill";b.textContent=o;if((F[field]||[]).includes(o))b.classList.add("on-g");b.addEventListener("click",function(){onCheck(field,o,this)});d.appendChild(b)});return d}
+function mkRow(label,...content){const d=document.createElement("div");d.className="row";const l=document.createElement("div");l.className="row-label";l.textContent=label;const c=document.createElement("div");c.className="row-content";content.forEach(x=>{if(x)c.appendChild(x)});d.appendChild(l);d.appendChild(c);return d}
+function mkSec(title,sub,cls){const d=document.createElement("div");d.className="sec "+(cls||"blue");const h=document.createElement("span");h.textContent=title;d.appendChild(h);if(sub){const s=document.createElement("small");s.textContent="　"+sub;d.appendChild(s)}return d}
+function mkSub(text,cls){const d=document.createElement("div");d.className="sub "+(cls||"");d.textContent=text;return d}
+function mkCond(f,v){const d=document.createElement("div");d.dataset.cond=f+"="+v;d.style.display=F[f]===v?"":"none";return d}
+function mkCite(t){const d=document.createElement("div");d.className="cite";d.textContent=t;return d}
+function mkRange(label,prefix,unit){
+  const w=document.createElement("div");w.className="row-content inline";
+  w.appendChild(mkI(prefix+"_lo",{w:"65px",ph:"下限"}));
+  const s=document.createElement("span");s.className="range-sep";s.textContent="～";w.appendChild(s);
+  w.appendChild(mkI(prefix+"_hi",{w:"65px",ph:"上限"}));
+  const u=document.createElement("span");u.className="unit";u.textContent=" "+unit;w.appendChild(u);
+  return mkRow(label,w);
+}
+function mkCard(title,cls,...children){const card=document.createElement("div");card.className="card";card.appendChild(mkSec(title,"",cls));children.forEach(c=>{if(c)card.appendChild(c)});return card}
+
+// === Reusable blocks ===
+function buildLab(pfx,container){
+  const cls=pfx==="pre_"?"":"green";const card=document.createElement("div");card.className="card";
+  card.appendChild(mkSub("生化檢驗（病歷擷取）",cls));
+  card.appendChild(mkRow("抽血日期",mkI(pfx+"labDate",{type:"date",w:"170px"})));
+  const g=document.createElement("div");g.className="grid2";
+  [["Cr",pfx+"cr","mg/dL"],["eGFR",pfx+"egfr","mL/min"],["BUN",pfx+"bun","mg/dL"],["Albumin",pfx+"albumin","g/dL"],["K（鉀）",pfx+"k","mEq/L"],["P（磷）",pfx+"p","mg/dL"],["Hb",pfx+"hb","g/dL"],["HbA1c",pfx+"hba1c","%"]].forEach(([l,f,u])=>g.appendChild(mkRow(l,mkI(f,{w:"75px",unit:u}))));
+  card.appendChild(g);container.appendChild(card);
+}
+function buildMeasure(pfx,container){
+  const cls=pfx==="pre_"?"":"green";const card=document.createElement("div");card.className="card";
+  card.appendChild(mkSub("身體測量（研究評估）",cls));
+  const g=document.createElement("div");g.className="grid3";
+  g.appendChild(mkRow("身高",mkI(pfx+"height",{w:"65px",unit:"cm"})));
+  g.appendChild(mkRow("體重",mkI(pfx+"weight",{w:"65px",unit:"kg"})));
+  const bv=document.createElement("div");bv.className="auto-val";bv.id=pfx+"bmi_val";bv.textContent=F[pfx+"bmi"]?F[pfx+"bmi"]+" kg/m²":"—";
+  g.appendChild(mkRow("BMI",bv));card.appendChild(g);container.appendChild(card);
+}
+function buildSGA(pfx,container){
+  const cls=pfx==="pre_"?"":"green";const card=document.createElement("div");card.className="card";
+  card.appendChild(mkSub("SGA 主觀整體營養評估（7-point scale）",cls));
+  card.appendChild(mkCite("Kalantar-Zadeh et al. Nephrol Dial Transplant 2001;16(7):1459-65 | Campbell et al. J Ren Nutr 2007;17(6):399-407 | NKF KDOQI 2000"));
+  card.appendChild(mkRow("SGA 評分",mkP(pfx+"sgaScore",["7","6","5","4","3","2","1"])));
+  const sgaDesc=document.createElement("div");sgaDesc.className="cite";sgaDesc.style.fontSize="11px";sgaDesc.style.lineHeight="1.7";sgaDesc.innerHTML="<b>6-7</b> 營養良好（Well-nourished）　<b>3-5</b> 輕中度蛋白質-能量消耗（Mild-moderate PEW）　<b>1-2</b> 重度消耗（Severe PEW）";card.appendChild(sgaDesc);
+  // Weight change: input = 6個月前體重, auto-calc loss and %
+  const ww=document.createElement("div");ww.className="row-content";
+  const wl=document.createElement("div");wl.className="inline";wl.style.flexWrap="wrap";wl.style.gap="6px";
+  wl.appendChild(document.createTextNode("6個月前體重 "));
+  wl.appendChild(mkI(pfx+"w6mAgo",{w:"65px",unit:"kg"}));
+  const lossSpan=document.createElement("span");lossSpan.style.cssText="margin-left:8px;font-weight:600;color:var(--blue);font-size:13px";
+  const lossKg=document.createElement("span");lossKg.id=pfx+"wc6m_val";lossKg.textContent=F[pfx+"wc6m"]?"-"+F[pfx+"wc6m"]+" kg":"—";lossSpan.appendChild(lossKg);
+  lossSpan.appendChild(document.createTextNode("（"));
+  const lossPct=document.createElement("span");lossPct.id=pfx+"wcPct_val";lossPct.textContent=F[pfx+"wcPct"]?"-"+F[pfx+"wcPct"]+" %":"—";lossSpan.appendChild(lossPct);
+  lossSpan.appendChild(document.createTextNode("）"));
+  wl.appendChild(lossSpan);
+  ww.appendChild(wl);
+  const tl=document.createElement("div");tl.style.marginTop="4px";const ts=document.createElement("span");ts.style.fontSize="12px";ts.style.marginRight="4px";ts.textContent="近2週趨勢：";tl.appendChild(ts);tl.appendChild(mkP(pfx+"wt2w",["增加","穩定","減少"]));ww.appendChild(tl);
+  card.appendChild(mkRow("體重變化",ww));
+  card.appendChild(mkRow("飲食攝取",mkP(pfx+"diet",["正常","減少"])));
+  const cd=mkCond(pfx+"diet","減少");const dd=document.createElement("span");dd.className="inline";dd.appendChild(mkI(pfx+"dietDur",{w:"38px"}));dd.appendChild(document.createTextNode(" 週　"));dd.appendChild(mkP(pfx+"dietType",["正常固體","流質","極少量"]));cd.appendChild(mkRow("",dd));card.appendChild(cd);
+  card.appendChild(mkRow("腸胃道症狀",mkC(pfx+"gi",["無","噁心","嘔吐","腹瀉","厭食"])));
+  card.appendChild(mkRow("功能狀態",mkP(pfx+"func",["正常活動","低於正常","臥床"])));
+  card.appendChild(mkRow("脂肪流失",mkP(pfx+"fat",["正常","輕度","中度","重度"])));
+  card.appendChild(mkRow("肌肉耗損",mkP(pfx+"muscle",["正常","輕度","中度","重度"])));
+  card.appendChild(mkRow("水腫",mkC(pfx+"edema",["無","踝部","薦骨","腹水"])));
+  container.appendChild(card);
+}
+function buildSUS(container){
+  const card=document.createElement("div");card.className="card";
+  card.appendChild(mkSub("SUS 系統易用性量表（後測）","green"));
+  card.appendChild(mkCite("Brooke J. SUS: A quick and dirty usability scale. 1996. | 1＝非常不同意　5＝非常同意"));
+  SUS.forEach(item=>{
+    const d=document.createElement("div");d.style.cssText="padding:6px 18px;border-bottom:1px solid #f5f5f5";
+    const lb=document.createElement("div");lb.style.cssText="font-size:12.5px;color:#333;margin-bottom:4px";lb.textContent=item.id+". "+item.t;d.appendChild(lb);
+    const ps=document.createElement("div");ps.className="pills";
+    [1,2,3,4,5].forEach(n=>{const b=document.createElement("button");b.className="pill sus";b.textContent=n;b.dataset.val=n;if(F["sus"+item.id]==String(n))b.classList.add("on-g");b.addEventListener("click",()=>onSus(item.id,n,ps));ps.appendChild(b)});
+    d.appendChild(ps);card.appendChild(d);
+  });
+  const td=document.createElement("div");td.className="sus-total";
+  const tv=document.createElement("span");tv.id="sus_total_val";tv.textContent=F.sus_total?F.sus_total+" / 100":"—（需填完10題）";td.appendChild(tv);
+  const badge=document.createElement("span");badge.className="sus-badge";badge.id="sus_badge";badge.textContent="✓ 可接受（≥68）";badge.style.display=F.sus_total&&parseFloat(F.sus_total)>=68?"inline":"none";td.appendChild(badge);
+  card.appendChild(td);container.appendChild(card);
+}
+
+// === Build form ===
+function buildForm(){
+  const basic=document.getElementById("tab-basic");basic.innerHTML="";
+  // 研究資訊
+  let card=document.createElement("div");card.className="card";
+  card.appendChild(mkSec("研究資訊","","blue"));
+  card.appendChild(mkRow("受試者編號",mkI("subjectId",{ph:"例：CKD-001"})));
+  card.appendChild(mkRow("受試者姓名",mkI("subjectName",{ph:"僅供對照，不納入分析"})));
+  card.appendChild(mkRow("LINE ID",mkI("lineId",{ph:"LINE 顯示名稱或 ID"})));
+  card.appendChild(mkRow("評估者",mkI("assessor")));
+  card.appendChild(mkRow("同意書",mkP("consent",["已簽署","未簽署"])));
+  basic.appendChild(card);
+
+  // Part A
+  card=document.createElement("div");card.className="card";
+  card.appendChild(mkSec("Part A：病歷擷取","資料來源：院內病歷系統","blue"));
+  card.appendChild(mkSub("A-1 人口學特徵"));
+  // Birthday + auto age
+  const bdRow=mkRow("生日",mkI("birthday",{type:"date",w:"170px"}));
+  const ageSpan=document.createElement("span");ageSpan.id="age_val";ageSpan.style.cssText="margin-left:12px;font-weight:700;color:var(--blue);font-size:14px";ageSpan.textContent=F.age?F.age+" 歲":"";
+  bdRow.querySelector(".row-content").appendChild(ageSpan);
+  card.appendChild(bdRow);
+  card.appendChild(mkRow("性別",mkP("sex",["男","女"])));
+  // Body measurements (like backend)
+  card.appendChild(mkSub("身高體重與每日熱量需求"));
+  const bodyGrid=document.createElement("div");bodyGrid.className="grid2";
+  bodyGrid.appendChild(mkRow("身高",mkI("height",{w:"70px",unit:"cm"})));
+  bodyGrid.appendChild(mkRow("體重",mkI("weight",{w:"70px",unit:"kg"})));
+  card.appendChild(bodyGrid);
+  const bmiVal=document.createElement("div");bmiVal.className="auto-val";bmiVal.id="bmi_val";bmiVal.textContent=F.bmi?F.bmi+" kg/m²":"—";
+  card.appendChild(mkRow("BMI（自動計算）",bmiVal));
+  card.appendChild(mkRow("活動量",mkP("activity",["輕度工作","中度工作","重度工作"])));
+  card.appendChild(mkRow("教育程度",mkP("education",["國小以下","國中","高中職","大專以上"])));
+  card.appendChild(mkSub("A-2 疾病史"));
+  card.appendChild(mkRow("CKD 分期",mkP("ckdStage",["Stage 1","Stage 2","Stage 3a","Stage 3b","Stage 4","Stage 5"])));
+  card.appendChild(mkRow("DM",mkP("dm",["無","有"])));
+  card.appendChild(mkRow("HTN",mkP("htn",["無","有"])));
+  card.appendChild(mkRow("高血脂",mkP("hyperlipidemia",["無","有"])));
+  card.appendChild(mkRow("其他共病",mkI("otherComorbid")));
+  card.appendChild(mkSub("A-3 用藥"));
+  card.appendChild(mkRow("降血壓藥",mkP("antihypertensive",["無","有"])));let c1=mkCond("antihypertensive","有");c1.appendChild(mkRow("",mkI("antihypertensiveName",{ph:"藥名"})));card.appendChild(c1);
+  card.appendChild(mkRow("降血糖藥",mkP("antidiabetic",["無","有"])));c1=mkCond("antidiabetic","有");c1.appendChild(mkRow("",mkI("antidiabeticName",{ph:"藥名"})));card.appendChild(c1);
+  card.appendChild(mkRow("降血脂藥",mkP("lipidLowering",["無","有"])));
+  card.appendChild(mkRow("磷結合劑",mkP("phosphateBinder",["無","有"])));c1=mkCond("phosphateBinder","有");c1.appendChild(mkRow("",mkI("phosphateBinderName",{ph:"藥名"})));card.appendChild(c1);
+  card.appendChild(mkRow("營養補充品",mkP("supplement",["無","有"])));
+  let cSup=mkCond("supplement","有");
+  cSup.appendChild(mkRow("使用品項（可複選）",mkC("supplementItems",["勝補納","桂格完膳","慎選1","易能充","慎選0","三多LPF-N","力增Reg.EN","百仕可慎護1.4%","益力勝慎前8%","倍速力Fresubin","補体康白方","偉力健LPN","其他"])));
+  const cSupOther=mkCond("supplementItems_has_other","1");
+  cSupOther.appendChild(mkRow("其他品名",mkI("supplementOther",{ph:"請填寫品名"})));
+  cSup.appendChild(cSupOther);
+  card.appendChild(cSup);
+  card.appendChild(mkRow("其他藥物",mkI("otherMeds")));
+  card.appendChild(mkSub("受試者特徵（收案時詢問）"));
+  card.appendChild(mkRow("手機使用",mkP("phoneSkill",["熟練","尚可","需協助"])));
+  card.appendChild(mkRow("LINE 頻率",mkP("lineFreq",["每天","經常","偶爾","未使用"])));
+  basic.appendChild(card);
+
+  // 量化自我目標
+  card=document.createElement("div");card.className="card";
+  card.appendChild(mkSec("量化自我目標值","對應後台個人化設定","dark"));
+  card.appendChild(mkSub("熱量與三大營養素"));
+  card.appendChild(mkRange("🔥 熱量","tgt_cal","kcal"));card.appendChild(mkRange("🥩 蛋白質","tgt_pro","g"));card.appendChild(mkRange("🧈 脂肪","tgt_fat","g"));card.appendChild(mkRange("🍚 碳水","tgt_cho","g"));card.appendChild(mkRange("💧 飲水量","tgt_water","mL"));
+  card.appendChild(mkSub("CKD 重點控制營養素"));
+  card.appendChild(mkRange("🧂 鈉","tgt_na","mg"));card.appendChild(mkRange("🦴 磷","tgt_phos","mg"));card.appendChild(mkRange("🍌 鉀","tgt_k","mg"));
+  card.appendChild(mkSub("六大類食物攝取目標"));
+  card.appendChild(mkRange("🌾 全穀雜糧","tgt_grain","份"));card.appendChild(mkRange("🍖 豆魚蛋肉","tgt_protein","份"));card.appendChild(mkRange("🥬 蔬菜類","tgt_veg","份"));card.appendChild(mkRange("🍎 水果類","tgt_fruit","份"));card.appendChild(mkRange("🥛 乳品類","tgt_dairy","份"));card.appendChild(mkRange("🥜 油脂堅果","tgt_oil","份"));
+  basic.appendChild(card);
+
+  // PRE
+  const pre=document.getElementById("tab-pre");pre.innerHTML="";
+  const preCard=document.createElement("div");preCard.className="card";
+  preCard.appendChild(mkSec("前測 Baseline（Week 0）","","blue"));
+  preCard.appendChild(mkRow("前測日期",mkI("pre_date",{type:"date",w:"170px"})));
+  pre.appendChild(preCard);
+  buildLab("pre_",pre);buildSGA("pre_",pre);
+  const preNote=document.createElement("div");preNote.className="card";preNote.appendChild(mkRow("備註",mkI("pre_notes",{ph:"前測觀察紀錄..."})));pre.appendChild(preNote);
+
+  // POST
+  const post=document.getElementById("tab-post");post.innerHTML="";
+  const postCard=document.createElement("div");postCard.className="card";
+  postCard.appendChild(mkSec("後測 Post-test（Week 12）","","green"));
+  postCard.appendChild(mkRow("後測日期",mkI("post_date",{type:"date",w:"170px"})));
+  post.appendChild(postCard);
+  buildLab("post_",post);
+  // Post weight only (height from baseline)
+  const postBody=document.createElement("div");postBody.className="card";
+  postBody.appendChild(mkSub("身體測量（後測）","green"));
+  const postNote2=document.createElement("div");postNote2.className="cite";postNote2.textContent="身高沿用基本資料，僅重新測量體重";postBody.appendChild(postNote2);
+  const pg=document.createElement("div");pg.className="grid3";
+  pg.appendChild(mkRow("體重",mkI("post_weight",{w:"65px",unit:"kg"})));
+  const pbv=document.createElement("div");pbv.className="auto-val";pbv.id="post_bmi_val";pbv.textContent=F.post_bmi?F.post_bmi+" kg/m²":"—";
+  pg.appendChild(mkRow("BMI",pbv));
+  const hwNote=document.createElement("div");hwNote.style.cssText="font-size:11px;color:var(--text3);padding:2px 0";hwNote.textContent="身高：沿用基本資料";
+  pg.appendChild(mkRow("身高",hwNote));
+  postBody.appendChild(pg);post.appendChild(postBody);
+  buildSGA("post_",post);
+  buildSUS(post);
+  const postNote=document.createElement("div");postNote.className="card";postNote.appendChild(mkRow("備註",mkI("post_notes",{ph:"後測觀察紀錄..."})));post.appendChild(postNote);
+}
+
+// === Tabs ===
+function switchTab(t){curTab=t;document.querySelectorAll(".tab-content").forEach(el=>el.classList.add("hidden"));document.getElementById("tab-"+t).classList.remove("hidden");document.querySelectorAll("#tabbar .tab").forEach(el=>el.classList.toggle("active",el.dataset.tab===t))}
+function updateTabbar(){
+  const bar=document.getElementById("tabbar");bar.innerHTML="";
+  [["basic","📋 基本資料",""],["pre","🔵 前測",""],["post","🟢 後測＋SUS","g"]].forEach(([k,l,c])=>{
+    const b=document.createElement("button");b.className="tab "+(c||"")+(curTab===k?" active":"");b.textContent=l;b.dataset.tab=k;b.addEventListener("click",()=>switchTab(k));bar.appendChild(b);
+  });
+  const lb=document.createElement("button");lb.className="tab";lb.textContent="📁 列表("+recs.length+")";lb.addEventListener("click",showList);bar.appendChild(lb);
+  const nb=document.createElement("button");nb.className="btn-new-prominent";nb.style.cssText="padding:8px 18px;font-size:13px;border-radius:20px;margin-left:4px";nb.innerHTML='<span class="icon">＋</span>新增個案';
+  nb.addEventListener("click",()=>{F=newF();editIdx=null;buildForm();switchTab("basic");updateTabbar()});
+  bar.appendChild(nb);
+}
+
+// === Export XLSX ===
+function exportXLSX(){
+  if(!recs.length)return flash("尚無紀錄");
+  const keys=Object.keys(newF());
+  const header=keys;
+  const data=[header];
+  recs.forEach(r=>{data.push(keys.map(k=>{let v=r[k]??"";if(Array.isArray(v))v=v.join(";");return v}))});
+  const wsData=XLSX.utils.aoa_to_sheet(data);
+  // column widths
+  wsData['!cols']=keys.map(k=>({wch:Math.max(k.length+2,12)}));
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,wsData,"CRF");
+  XLSX.writeFile(wb,"CRF_"+new Date().toISOString().slice(0,10)+".xlsx");
+}
+
+// === Import XLSX ===
+function importXLSX(){
+  const inp=document.createElement("input");inp.type="file";inp.accept=".xlsx,.xls,.csv";
+  inp.addEventListener("change",e=>{
+    const file=e.target.files[0];if(!file)return;
+    const reader=new FileReader();
+    reader.onload=function(ev){
+      try{
+        const wb=XLSX.read(ev.target.result,{type:"array"});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        const rows=XLSX.utils.sheet_to_json(ws,{defval:""});
+        if(!rows.length)return flash("檔案沒有資料");
+        const template=newF();let added=0,updated=0;
+        rows.forEach(row=>{
+          const rec={...template};
+          Object.keys(row).forEach(k=>{if(k in rec){
+            let v=row[k];
+            if(Array.isArray(rec[k]))rec[k]=typeof v==="string"&&v?v.split(";"):[];
+            else rec[k]=String(v);
+          }});
+          if(!rec.subjectId)return;
+          const idx=recs.findIndex(r=>r.subjectId===rec.subjectId);
+          if(idx>=0){recs[idx]=rec;updated++}else{recs.push(rec);added++}
+        });
+        persist();flash("匯入完成：新增 "+added+" 筆，更新 "+updated+" 筆");
+        listBuilt=false;showList();
+      }catch(err){flash("匯入失敗："+err.message)}
+    };
+    reader.readAsArrayBuffer(file);
+  });
+  inp.click();
+}
+
+// === List (Summary Table) ===
+let listFilter="";
+let listBuilt=false;
+function showList(){
+  document.getElementById("page-form").classList.add("hidden");
+  const list=document.getElementById("page-list");list.classList.remove("hidden");
+  
+  if(!listBuilt){
+    list.innerHTML="";
+    // Header
+    const hd=document.createElement("div");hd.style.cssText="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px";
+    const tt=document.createElement("h2");tt.id="list-title";tt.style.cssText="font-size:18px;color:var(--blue);margin:0;font-family:'Noto Serif TC',serif";tt.textContent="個案總表（"+recs.length+" 筆）";
+    const btns=document.createElement("div");btns.style.cssText="display:flex;gap:6px;flex-wrap:wrap";
+    const bN=document.createElement("button");bN.className="btn-new-prominent";bN.innerHTML='<span class="icon">＋</span> 新增個案';bN.addEventListener("click",()=>{F=newF();editIdx=null;buildForm();showForm();switchTab("basic");updateTabbar()});
+    const bE=document.createElement("button");bE.className="btn btn-s b-green";bE.textContent="⬇ 匯出 Excel";bE.addEventListener("click",exportXLSX);
+    const bI=document.createElement("button");bI.className="btn btn-s b-blue";bI.textContent="⬆ 匯入 Excel";bI.addEventListener("click",importXLSX);
+    const bR=document.createElement("button");bR.className="btn btn-s b-red";bR.textContent="清除全部";bR.addEventListener("click",()=>{if(!confirm("確定清除所有紀錄？"))return;recs=[];persist();listFilter="";if(document.getElementById("list-search"))document.getElementById("list-search").value="";renderTable();const t=document.getElementById("list-title");if(t)t.textContent="個案總表（0 筆）"});
+    btns.append(bN,bE,bI,bR);hd.append(tt,btns);list.appendChild(hd);
+
+    // Search box (built once, never destroyed)
+    const searchWrap=document.createElement("div");searchWrap.style.cssText="margin-bottom:12px;display:flex;align-items:center;gap:8px";
+    const searchIcon=document.createElement("span");searchIcon.textContent="🔍";searchIcon.style.fontSize="18px";searchWrap.appendChild(searchIcon);
+    const si=document.createElement("input");si.type="text";si.id="list-search";si.placeholder="搜尋編號、姓名、LINE ID...";si.value=listFilter;
+    si.style.cssText="flex:1;border:1.5px solid var(--border);border-radius:10px;padding:10px 14px;font-size:14px;font-family:inherit;background:var(--card);transition:border .2s,box-shadow .2s";
+    si.addEventListener("input",function(){listFilter=this.value;renderTable()});
+    si.addEventListener("focus",function(){this.style.borderColor="var(--blue2)";this.style.boxShadow="0 0 0 3px rgba(37,99,160,.12)"});
+    si.addEventListener("blur",function(){this.style.borderColor="var(--border)";this.style.boxShadow="none"});
+    searchWrap.appendChild(si);
+    window._searchInp=si;
+    list.appendChild(searchWrap);
+
+    // Table container (only this part re-renders on search)
+    const tableContainer=document.createElement("div");tableContainer.id="table-container";
+    list.appendChild(tableContainer);
+
+    // Legend
+    const legend=document.createElement("div");legend.id="list-legend";legend.style.cssText="font-size:10px;color:var(--text3);margin-top:8px;text-align:center;line-height:1.6";
+    legend.innerHTML="SGA：<span style='color:#166534'>■</span> 6-7良好　<span style='color:#b45309'>■</span> 3-5輕中度PEW　<span style='color:#b91c1c'>■</span> 1-2重度PEW　｜　SUS：<span style='color:#166534'>■</span>≥80優秀　<span style='color:#2563a0'>■</span>≥68可接受　<span style='color:#b91c1c'>■</span>&lt;68偏低";
+    list.appendChild(legend);
+    listBuilt=true;
+  }
+  
+  // Update title count
+  const titleEl=document.getElementById("list-title");
+  if(titleEl)titleEl.textContent="個案總表（"+recs.length+" 筆）";
+  
+  renderTable();
+  setTimeout(()=>{const si=document.getElementById("list-search");if(si)si.focus()},50);
+}
+
+function renderTable(){
+  const container=document.getElementById("table-container");
+  if(!container)return;
+  container.innerHTML="";
+
+  const kw=listFilter.toLowerCase().trim();
+  const filtered=recs.map((r,i)=>({r,i})).filter(({r})=>{
+    if(!kw)return true;
+    return (r.subjectId||"").toLowerCase().includes(kw)||(r.subjectName||"").toLowerCase().includes(kw)||(r.lineId||"").toLowerCase().includes(kw);
+  });
+
+  if(!recs.length){container.appendChild(Object.assign(document.createElement("p"),{className:"empty",textContent:"尚無紀錄，點擊「新增」開始收案"}));return}
+  if(recs.length&&!filtered.length){container.appendChild(Object.assign(document.createElement("p"),{className:"empty",textContent:"找不到符合「"+listFilter+"」的個案"}));return}
+
+  // Summary table
+  const tableWrap=document.createElement("div");tableWrap.style.cssText="overflow-x:auto;border-radius:10px;box-shadow:var(--shadow)";
+  const table=document.createElement("table");table.style.cssText="width:100%;border-collapse:collapse;background:#fff;font-size:12px;white-space:nowrap";
+  
+  // Header row
+  const thead=document.createElement("thead");
+  const hr=document.createElement("tr");
+  ["","編號","姓名","CKD","前測日","eGFR₀","Alb₀","SGA₀","後測日","eGFR₁","Alb₁","SGA₁","SUS",""].forEach(h=>{
+    const th=document.createElement("th");
+    th.textContent=h;
+    th.style.cssText="padding:8px 6px;background:var(--blue);color:#fff;font-weight:600;text-align:center;font-size:11px;letter-spacing:.3px;border-bottom:2px solid #fff";
+    hr.appendChild(th);
+  });
+  thead.appendChild(hr);table.appendChild(thead);
+
+  // Data rows
+  const tbody=document.createElement("tbody");
+  filtered.forEach(({r,i:origIdx},dispIdx)=>{
+    const tr=document.createElement("tr");
+    tr.style.cssText="border-bottom:1px solid #f0f0f0;transition:background .1s";
+    tr.addEventListener("mouseenter",()=>tr.style.background="#f8fafc");
+    tr.addEventListener("mouseleave",()=>tr.style.background="");
+
+    // Row number
+    const tdNum=document.createElement("td");tdNum.style.cssText="padding:8px 6px;text-align:center;color:var(--text3);font-size:11px";tdNum.textContent=dispIdx+1;tr.appendChild(tdNum);
+
+    // Data cells
+    const vals=[
+      r.subjectId||"—",
+      r.subjectName||"",
+      r.ckdStage?r.ckdStage.replace("Stage ",""):"—",
+      r.pre_date?r.pre_date.slice(5):"—",
+      r.pre_egfr||"—",
+      r.pre_albumin||"—",
+      r.pre_sgaScore||"—",
+      r.post_date?r.post_date.slice(5):"—",
+      r.post_egfr||"—",
+      r.post_albumin||"—",
+      r.post_sgaScore||"—",
+      r.sus_total||"—"
+    ];
+    vals.forEach((v,j)=>{
+      const td=document.createElement("td");
+      td.style.cssText="padding:8px 6px;text-align:center";
+      if(j===0){td.style.fontWeight="700";td.style.color="var(--blue)"}
+      if(j===1){td.style.textAlign="left"}
+      // Color SGA
+      if(j===6||j===10){
+        const n=parseInt(v);
+        if(n>=6)td.style.color="#166534";
+        else if(n>=3)td.style.color="#b45309";
+        else if(n>=1)td.style.color="#b91c1c";
+      }
+      // Color SUS
+      if(j===11){
+        const n=parseFloat(v);
+        if(n>=80)td.style.cssText+="color:#166534;font-weight:700";
+        else if(n>=68)td.style.cssText+="color:#2563a0;font-weight:600";
+        else if(n>0)td.style.cssText+="color:#b91c1c";
+      }
+      td.textContent=v;tr.appendChild(td);
+    });
+
+    // Action buttons
+    const tdAct=document.createElement("td");tdAct.style.cssText="padding:6px;text-align:center";
+    const be=document.createElement("button");be.className="btn btn-s b-blue";be.textContent="編輯";be.style.marginRight="3px";
+    be.addEventListener("click",()=>{F={...recs[origIdx]};["pre_gi","pre_edema","post_gi","post_edema","supplementItems"].forEach(k=>{F[k]=[...(F[k]||[])]});editIdx=origIdx;buildForm();showForm();switchTab("basic");updateTabbar()});
+    const bd=document.createElement("button");bd.className="btn btn-s b-gray";bd.textContent="刪";
+    bd.addEventListener("click",()=>{if(!confirm("確定刪除 "+r.subjectId+"？"))return;recs.splice(origIdx,1);persist();renderTable();const t=document.getElementById("list-title");if(t)t.textContent="個案總表（"+recs.length+" 筆）"});
+    tdAct.append(be,bd);tr.appendChild(tdAct);
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);tableWrap.appendChild(table);container.appendChild(tableWrap);
+}
+
+function showForm(){document.getElementById("page-form").classList.remove("hidden");document.getElementById("page-list").classList.add("hidden");listBuilt=false}
+
+// === Save / New ===
+document.getElementById("btn-save").addEventListener("click",()=>{
+  if(!F.subjectId)return flash("請先填寫受試者編號");
+  if(editIdx!==null){recs[editIdx]={...F}}else{recs.push({...F})}
+  persist();flash("✓ 已儲存");editIdx=null;updateTabbar();
+});
+document.getElementById("btn-new").addEventListener("click",()=>{F=newF();editIdx=null;buildForm();switchTab("basic");updateTabbar()});
+
+// === Init ===
+buildForm();updateTabbar();switchTab("basic");
+</script>
+</body>
+</html>
