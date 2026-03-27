@@ -80,6 +80,15 @@ textarea{resize:vertical;min-height:60px}
 .chk-item.on{background:var(--blue);color:#fff;border-color:var(--blue)}
 .chk-item.on-green{background:var(--green);color:#fff;border-color:var(--green)}
 .chk-item.on-orange{background:var(--orange);color:#fff;border-color:var(--orange)}
+.sticky-note{position:sticky;bottom:0;z-index:10;margin:12px -18px -18px;border-top:2px solid #fbbf24;border-radius:0 0 var(--radius) var(--radius);background:#fffbeb;transition:all .2s}
+.sticky-note summary{padding:10px 16px;cursor:pointer;font-weight:600;font-size:13px;color:var(--orange);list-style:none;display:flex;align-items:center;gap:6px}
+.sticky-note summary::before{content:"📝"}
+.sticky-note summary::after{content:"▸";transition:transform .2s;margin-left:auto;font-size:14px}
+.sticky-note[open] summary::after{transform:rotate(90deg)}
+.sticky-note textarea{width:100%;min-height:120px;border:none;background:transparent;padding:0 16px 14px;font-size:14px;font-family:inherit;resize:vertical;color:var(--text);line-height:1.8}
+.sticky-note textarea:focus{outline:none}
+.week-badge{display:inline-block;padding:2px 8px;border-radius:10px;background:#dbeafe;color:#1d4ed8;font-size:11px;font-weight:600;margin-left:6px}
+.comorbid-other{margin-top:8px}
 .actions{display:flex;gap:8px;justify-content:center;margin:16px 0;flex-wrap:wrap}
 .flash{position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#065f46;color:#fff;padding:10px 24px;border-radius:12px;font-weight:600;z-index:99;display:none;font-size:14px}
 .hidden{display:none}
@@ -101,7 +110,7 @@ textarea{resize:vertical;min-height:60px}
 <div class="app">
 <div class="header">
   <h1>營養腎隊友 個案紀錄表</h1>
-  <p>Case Report Form (CRF) v7 ｜ 2026.03.21</p>
+  <p>Case Report Form (CRF) v8 ｜ 2026.03.27</p>
 </div>
 <div class="tabs" id="tabbar"></div>
 <div id="flash" class="flash"></div>
@@ -109,7 +118,7 @@ textarea{resize:vertical;min-height:60px}
 <div id="listArea" class="hidden"></div>
 </div>
 <script>
-const TABS=[{id:"basic",label:"基本資料",cls:""},{id:"pre",label:"前測",cls:""},{id:"target",label:"目標設定",cls:"t-orange"},{id:"post",label:"後測",cls:"t-green"},{id:"sus",label:"SUS",cls:"t-green"}];
+const TABS=[{id:"basic",label:"基本資料",cls:""},{id:"pre",label:"前測 SGA",cls:""},{id:"target",label:"目標設定",cls:"t-orange"},{id:"post",label:"後測",cls:"t-green"},{id:"sus",label:"SUS",cls:"t-green"}];
 const SGA_B=[{id:"sgaFatLoss",l:"皮下脂肪喪失（三頭肌、胸部）"},{id:"sgaMuscleLoss",l:"肌肉耗損（四頭肌、三角肌）"},{id:"sgaEdemaAnkle",l:"腳踝水腫"},{id:"sgaEdemaSacral",l:"薦骨水腫"},{id:"sgaAscites",l:"腹水"}];
 const SUS_Q=["我想我會經常使用這個系統","我認為這個系統過於複雜","我認為這個系統容易使用","我需要技術人員的幫助才能使用這個系統","我發現系統的各項功能整合良好","我覺得這個系統有太多不一致的地方","我認為大多數人能很快學會使用這個系統","我覺得使用這個系統很繁瑣","我對使用這個系統很有信心","我需要學習很多東西才能使用這個系統"];
 const MEALS=["早餐","午餐","晚餐","點心"];
@@ -120,9 +129,12 @@ const T_CKD=[{k:"na",e:"🧂",l:"鈉",u:"mg"},{k:"p",e:"🧪",l:"磷",u:"mg"},{k
 const T_SIX=[{k:"grain",e:"🌾",l:"全穀雜糧",u:"份"},{k:"meat",e:"🍖",l:"豆魚蛋肉",u:"份"},{k:"veg",e:"🥦",l:"蔬菜類",u:"份"},{k:"fruit",e:"🍎",l:"水果類",u:"份"},{k:"dairy",e:"🥛",l:"乳品類",u:"份"},{k:"oil",e:"🥜",l:"油脂堅果",u:"份"}];
 const ALL_T=[...T_MACRO,...T_CKD,...T_SIX];
 
+const WEEK_START=new Date("2026-03-25");
+const calcWeek=(dateStr)=>{if(!dateStr)return"";const d=new Date(dateStr);const diff=Math.floor((d-WEEK_START)/(7*24*60*60*1000));return"W"+(Math.max(1,diff+1))};
+
 function newF(){
   const f={subjectId:"",name:"",birthday:"",age:"",sex:"",height:"",weight:"",bmi:"",
-    activity:"",ckdStage:"",dm:"",dmNote:"",htn:"",hyperlipidemia:"",assessor:"莊曉雯",
+    activity:"",ckdStage:"",dm:"",htn:"",hyperlipidemia:"",comorbidOther:"",assessor:"莊曉雯",
     antihtn:"",antihtnName:"",antiDM:"",antiDMName:"",lipidMed:"",lipidMedName:"",kBinder:"",kBinderName:"",pBinder:"",pBinderName:"",
     // current supplements (basic)
     ...Object.fromEntries(SUPPS.map((_,i)=>["supp_cur_"+i,""])),suppCurOther:"",
@@ -161,8 +173,8 @@ function newF(){
   };return f;
 }
 
-let F=newF(),recs=JSON.parse(localStorage.getItem("crf7")||"[]"),editIdx=null,curTab="basic";
-const persist=()=>localStorage.setItem("crf7",JSON.stringify(recs));
+let F=newF(),recs=JSON.parse(localStorage.getItem("crf8")||localStorage.getItem("crf7")||"[]"),editIdx=null,curTab="basic";
+const persist=()=>localStorage.setItem("crf8",JSON.stringify(recs));
 const flash=msg=>{const el=document.getElementById("flash");el.textContent=msg;el.style.display="block";setTimeout(()=>el.style.display="none",2000)};
 
 // === Helpers ===
@@ -239,7 +251,7 @@ function buildSGA(parent,pre,cls){
   const a2=document.createElement("div");a2.className="sga-card"+(pre?"":" green");
   a2.appendChild(Object.assign(document.createElement("div"),{className:"sga-card-t",textContent:"2. 飲食變化（與平常飲食比較）",style:tc}));
   a2.appendChild(mkRow("飲食變化",mkP(px+"DietChange",["沒有變化","有變化"],sc)));
-  const dc=mkCond(px+"DietChange","有變化");dc.appendChild(mkRow("期間",mkI(px+"DietDuration",{ph:"__週"})));dc.appendChild(mkRow("方式",mkP(px+"DietType",["軟質飲食","全流質飲食","低熱量流質","飢餓"],sc)));a2.appendChild(dc);w.appendChild(a2);
+  const dc=mkCond(px+"DietChange","有變化");const durR=document.createElement("div");durR.className="row";durR.appendChild(Object.assign(document.createElement("div"),{className:"lbl",textContent:"期間"}));const durI=mkI(px+"DietDuration",{type:"number",ph:"數字"});durI.style.width="80px";durI.style.flex="none";durR.appendChild(durI);durR.appendChild(Object.assign(document.createElement("span"),{style:"font-size:13px;color:var(--text2)",textContent:"週"}));dc.appendChild(durR);dc.appendChild(mkRow("方式",mkP(px+"DietType",["軟質飲食","全流質飲食","低熱量流質","飢餓"],sc)));a2.appendChild(dc);w.appendChild(a2);
   // A3
   const a3=document.createElement("div");a3.className="sga-card"+(pre?"":" green");
   a3.appendChild(Object.assign(document.createElement("div"),{className:"sga-card-t",textContent:"3. 腸胃症狀（持續兩週以上）",style:tc}));
@@ -261,7 +273,7 @@ function buildSGA(parent,pre,cls){
   if(!F[dxK]){
     let dx="";
     if(F.ckdStage)dx="CKD Stage "+F.ckdStage;
-    if(F.dm==="有")dx+=(dx?", ":"")+"DM"+(F.dmNote?" ("+F.dmNote+")":"");
+    if(F.dm==="有")dx+=(dx?", ":"")+"DM (第二型)";
     if(dx)F[dxK]=dx;
   }
   a5.appendChild(mkRow("主要診斷",mkI(dxK,{ph:"CKD Stage __"})));
@@ -329,10 +341,10 @@ function buildForm(){
   hwR.appendChild(mkAuto("bmi"));c.appendChild(hwR);calcBMI("height","weight","bmi");
   c.appendChild(mkRow("活動量",mkP("activity",["輕度工作","中度工作","重度工作"])));
   c.appendChild(mkRow("CKD分期",mkP("ckdStage",["1","2","3a","3b","4","5"])));
-  c.appendChild(mkRow("DM",mkP("dm",["無","有"])));
-  const cdm=mkCond("dm","有");cdm.appendChild(mkRow("",mkI("dmNote",{ph:"Type / 備註"})));c.appendChild(cdm);
+  c.appendChild(mkRow("DM（第二型）",mkP("dm",["無","有"])));
   c.appendChild(mkRow("HTN",mkP("htn",["無","有"])));
   c.appendChild(mkRow("高血脂",mkP("hyperlipidemia",["無","有"])));
+  c.appendChild(mkRow("其他共病",mkI("comorbidOther",{ph:"例如：痛風、心衰竭..."})));
   c.appendChild(mkSub("用藥"));
   c.appendChild(mkRow("降血壓藥",mkP("antihtn",["無","有"])));
   let cd1=mkCond("antihtn","有");cd1.appendChild(mkRow("",mkI("antihtnName",{ph:"藥名"})));c.appendChild(cd1);
@@ -348,42 +360,36 @@ function buildForm(){
   c.appendChild(mkSupps("supp_cur_","on"));
   c.appendChild(mkRow("其他營養品",mkI("suppCurOther",{ph:"請填寫"})));
   c.appendChild(mkRow("評估者",mkI("assessor",{ph:"莊曉雯"})));
-  s0.appendChild(c);area.appendChild(s0);
-
-  // PRE
-  const s1=document.createElement("div");s1.id="sec_pre";s1.className=curTab==="pre"?"":"hidden";
-  let cp=mkCard("前測評估");
+  // === Biochem (moved from PRE to BASIC) ===
+  c.appendChild(mkSub("生化檢驗值（需一個月內數據）"));
   const dR=document.createElement("div");dR.className="row";
   dR.appendChild(Object.assign(document.createElement("div"),{className:"lbl",textContent:"前測日期"}));
-  const pdi=mkI("preDate",{type:"date",onChange:calcPostDate});if(!F.preDate){F.preDate=new Date().toISOString().slice(0,10);pdi.value=F.preDate}dR.appendChild(pdi);
+  const pdi=mkI("preDate",{type:"date",onChange:()=>{calcPostDate();updWeekBadge()}});if(!F.preDate){F.preDate=new Date().toISOString().slice(0,10);pdi.value=F.preDate}dR.appendChild(pdi);
   dR.appendChild(Object.assign(document.createElement("div"),{className:"lbl",textContent:"預計後測",style:"min-width:70px"}));
   const pdI=mkI("postDate",{type:"date"});calcPostDate();pdI.value=F.postDate||"";dR.appendChild(pdI);
-  cp.appendChild(dR);
-  // Biochem
-  cp.appendChild(mkSub("生化檢驗值（需一個月內數據）"));
-  cp.appendChild(mkRow("上次檢驗日期",mkI("preLabDate",{type:"date"})));
+  const wkBadge=document.createElement("span");wkBadge.className="week-badge";wkBadge.id="weekBadge";wkBadge.textContent=calcWeek(F.preDate);dR.appendChild(wkBadge);
+  c.appendChild(dR);
+  const updWeekBadge=()=>{const el=document.getElementById("weekBadge");if(el)el.textContent=calcWeek(F.preDate)};
+  c.appendChild(mkRow("上次檢驗日期",mkI("preLabDate",{type:"date"})));
   const bio=[{k:"preEgfr",hk:"preEgfrHas",l:"eGFR",u:"mL/min/1.73m²"},{k:"preAlb",hk:"preAlbHas",l:"Albumin",u:"g/dL"},{k:"preK",hk:"preKHas",l:"K（鉀）",u:"mEq/L"},{k:"preP",hk:"prePHas",l:"P（磷）",u:"mg/dL"},{k:"preHb",hk:"preHbHas",l:"Hb（血色素）",u:"g/dL"}];
   const wd=document.createElement("div");wd.className="warn";
   const updW=()=>{const m=bio.filter(b=>F[b.hk]==="無").map(b=>b.l);if(m.length){wd.className="warn show";wd.innerHTML="⚠️ <b>需請主任加開：</b>"+m.join("、")+"<br><span style='font-size:12px;color:#6b7280'>前測＋三個月後後測，共兩次</span>"}else wd.className="warn"};
   bio.forEach(b=>{const r=document.createElement("div");r.className="row";r.appendChild(Object.assign(document.createElement("div"),{className:"lbl wide",textContent:b.l}));
     const hp=document.createElement("div");hp.className="pills";hp.style.marginRight="8px";
     ["有","無"].forEach(v=>{const btn=document.createElement("button");btn.type="button";btn.className="pill"+(F[b.hk]===v?" sel":"");btn.textContent=v;btn.addEventListener("click",()=>{F[b.hk]=v;hp.querySelectorAll(".pill").forEach(p=>p.className="pill");btn.className="pill sel";updW()});hp.appendChild(btn)});
-    r.appendChild(hp);r.appendChild(mkI(b.k,{type:"number",ph:b.u,step:"0.01"}));cp.appendChild(r)});
-  cp.appendChild(wd);updW();
-  // SGA
-  buildSGA(cp,true);
-  // 24hr
-  cp.appendChild(mkSub("24小時飲食速記"));cp.appendChild(mkNote("跟診時快速記錄，之後輸入系統精算"));
+    r.appendChild(hp);r.appendChild(mkI(b.k,{type:"number",ph:b.u,step:"0.01"}));c.appendChild(r)});
+  c.appendChild(wd);updW();
+  // === 24hr Diet (moved from PRE to BASIC) ===
+  c.appendChild(mkSub("24小時飲食速記"));c.appendChild(mkNote("跟診時快速記錄，之後輸入系統精算"));
   const dt=document.createElement("table");dt.className="diet-table";const dh=document.createElement("tr");["餐次","食物品項與份量"].forEach(h=>{const th=document.createElement("th");th.textContent=h;dh.appendChild(th)});dt.appendChild(dh);
-  MEALS.forEach(m=>{const tr=document.createElement("tr");const td1=document.createElement("td");td1.style.cssText="width:70px;font-weight:600";td1.textContent=m;tr.appendChild(td1);const td2=document.createElement("td");td2.appendChild(mkTA("preDiet_"+m,"輸入食物..."));tr.appendChild(td2);dt.appendChild(tr)});cp.appendChild(dt);
-  // 6-group achieve (range-based)
-  cp.appendChild(mkSub("攝取達成率（舊目標 vs 本次實際）"));
-  cp.appendChild(mkNote("舊目標：從病歷調閱。填入目標值自動帶入 80%~120% 範圍，可微調"));
+  MEALS.forEach(m=>{const tr=document.createElement("tr");const td1=document.createElement("td");td1.style.cssText="width:70px;font-weight:600";td1.textContent=m;tr.appendChild(td1);const td2=document.createElement("td");td2.appendChild(mkTA("preDiet_"+m,"輸入食物..."));tr.appendChild(td2);dt.appendChild(tr)});c.appendChild(dt);
+  // === Achieve (moved from PRE to BASIC) ===
+  c.appendChild(mkSub("攝取達成率（舊目標 vs 本次實際）"));
+  c.appendChild(mkNote("舊目標：從病歷調閱。填入目標值自動帶入 80%~120% 範圍，可微調"));
   ALL_T.forEach(t=>{
     const r=document.createElement("div");r.className="range-row";
     r.appendChild(Object.assign(document.createElement("div"),{className:"lbl",textContent:t.e+" "+t.l}));
     const lok="preOld_"+t.k+"_lo",hik="preOld_"+t.k+"_hi",ak="preActual_"+t.k;
-    // Target value input with auto 80%~120%
     const tv=document.createElement("input");tv.type="number";tv.step="0.1";tv.placeholder="目標值";
     tv.style.cssText="width:75px;text-align:center;border:1.5px solid var(--blue2);border-radius:10px;background:#eef2ff";
     if(F[lok]&&F[hik]){const mid=((parseFloat(F[lok])+parseFloat(F[hik]))/2);tv.value=mid?mid.toFixed(1):"";}
@@ -402,10 +408,20 @@ function buildForm(){
     r.appendChild(Object.assign(document.createElement("span"),{className:"unit",textContent:"實際:"}));
     const ac=document.createElement("input");ac.type="number";ac.step="0.1";ac.value=F[ak]||"";ac.style.width="70px";ac.addEventListener("input",()=>{F[ak]=ac.value;updAch()});r.appendChild(ac);
     const ach=document.createElement("span");ach.id="ach_pre_"+t.k;ach.className="achieve";ach.textContent="—";r.appendChild(ach);
-    cp.appendChild(r);
+    c.appendChild(r);
   });
   const updAch=()=>{ALL_T.forEach(t=>{const lo=parseFloat(F["preOld_"+t.k+"_lo"]),hi=parseFloat(F["preOld_"+t.k+"_hi"]),ac=parseFloat(F["preActual_"+t.k]);const el=document.getElementById("ach_pre_"+t.k);if(!el)return;if(isNaN(lo)||isNaN(hi)||isNaN(ac)){el.textContent="—";el.className="achieve";return}if(ac>=lo&&ac<=hi){el.textContent="✓ 達成";el.className="achieve ok"}else{el.textContent="✗ 未達";el.className="achieve ng"}})};updAch();
-  cp.appendChild(mkRow("前測備註",mkTA("preNote","其他觀察記錄...")));
+  // === Sticky Note (營養師備註) ===
+  const sn=document.createElement("details");sn.className="sticky-note";if(F.preNote)sn.open=true;
+  const sm=document.createElement("summary");sm.textContent="營養師備註"+(F.preNote?" (有內容)":"");sn.appendChild(sm);
+  const snt=document.createElement("textarea");snt.placeholder="跟診觀察、衛教重點、交班事項...";snt.value=F.preNote||"";snt.addEventListener("input",()=>{F.preNote=snt.value;sm.textContent="營養師備註"+(snt.value?" (有內容)":"")});sn.appendChild(snt);
+  c.appendChild(sn);
+  s0.appendChild(c);area.appendChild(s0);
+
+  // PRE (now = SGA only)
+  const s1=document.createElement("div");s1.id="sec_pre";s1.className=curTab==="pre"?"":"hidden";
+  let cp=mkCard("前測 SGA 評估");
+  buildSGA(cp,true);
   s1.appendChild(cp);area.appendChild(s1);
 
   // TARGET
@@ -519,15 +535,45 @@ function showList(){
   const sI=document.createElement("input");sI.type="text";sI.placeholder="🔍 搜尋編號或姓名...";sI.style.cssText="width:280px;padding:10px 16px;border:1.5px solid var(--border);border-radius:24px;font-size:13px;font-family:inherit;background:var(--card);text-align:center";sR.appendChild(sI);area.appendChild(sR);
   const wrap=document.createElement("div");wrap.style.overflowX="auto";
   const tbl=document.createElement("table");tbl.className="list-table";
-  const thead=document.createElement("tr");["#","編號","姓名","CKD","前eGFR","前Alb","前SGA","後eGFR","後Alb","後SGA","SUS","操作"].forEach(h=>{const th=document.createElement("th");th.textContent=h;thead.appendChild(th)});tbl.appendChild(thead);
-  recs.forEach((r,i)=>{const tr=document.createElement("tr");[i+1,r.subjectId,r.name,r.ckdStage,r.preEgfr,r.preAlb,r.sgaRating,r.postEgfr,r.postAlb,r.postSgaRating,r.susScore].forEach(v=>{const td=document.createElement("td");td.textContent=v||"—";tr.appendChild(td)});
+  const thead=document.createElement("tr");["#","週次","編號","姓名","CKD","前eGFR","前Alb","前SGA","後eGFR","後Alb","後SGA","SUS","操作"].forEach(h=>{const th=document.createElement("th");th.textContent=h;thead.appendChild(th)});tbl.appendChild(thead);
+  recs.forEach((r,i)=>{const tr=document.createElement("tr");[i+1,calcWeek(r.preDate),r.subjectId,r.name,r.ckdStage,r.preEgfr,r.preAlb,r.sgaRating,r.postEgfr,r.postAlb,r.postSgaRating,r.susScore].forEach(v=>{const td=document.createElement("td");td.textContent=v||"—";tr.appendChild(td)});
     const td=document.createElement("td");const eb=document.createElement("button");eb.className="act-btn";eb.textContent="編輯";eb.addEventListener("click",()=>{F={...recs[i]};editIdx=i;document.getElementById("formArea").className="";area.className="hidden";buildForm();switchTab("basic");updateTabbar()});
     const db=document.createElement("button");db.className="act-btn";db.style.marginLeft="4px";db.textContent="刪除";db.addEventListener("click",()=>{if(confirm("確定刪除？")){recs.splice(i,1);persist();showList()}});td.appendChild(eb);td.appendChild(db);tr.appendChild(td);tbl.appendChild(tr)});
   wrap.appendChild(tbl);area.appendChild(wrap);
-  sI.addEventListener("input",()=>{const q=sI.value.toLowerCase().trim();tbl.querySelectorAll("tr").forEach((tr,i)=>{if(i===0)return;const t=(tr.children[1]?.textContent||"")+(tr.children[2]?.textContent||"");tr.style.display=t.toLowerCase().includes(q)?"":"none"})});
+  sI.addEventListener("input",()=>{const q=sI.value.toLowerCase().trim();tbl.querySelectorAll("tr").forEach((tr,i)=>{if(i===0)return;const t=(tr.children[2]?.textContent||"")+(tr.children[3]?.textContent||"");tr.style.display=t.toLowerCase().includes(q)?"":"none"})});
 }
 function showForm(){document.getElementById("formArea").className="";document.getElementById("listArea").className="hidden"}
-function exportXLSX(){if(recs.length===0)return flash("無資料可匯出");const ws=XLSX.utils.json_to_sheet(recs);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"CRF");XLSX.writeFile(wb,"CRF_營養腎隊友_"+new Date().toISOString().slice(0,10)+".xlsx");flash("✓ 已匯出 Excel")}
+function exportXLSX(){if(recs.length===0)return flash("無資料可匯出");
+  const COL_MAP={subjectId:"受試者編號",name:"姓名",birthday:"生日",age:"年齡",sex:"性別",height:"身高cm",weight:"體重kg",bmi:"BMI",activity:"活動量",ckdStage:"CKD分期",dm:"DM",htn:"HTN",hyperlipidemia:"高血脂",comorbidOther:"其他共病",assessor:"評估者",
+    antihtn:"降血壓藥",antihtnName:"降血壓藥名",antiDM:"降血糖藥",antiDMName:"降血糖藥名",lipidMed:"血脂用藥",lipidMedName:"血脂藥名",kBinder:"鉀結合劑",kBinderName:"鉀結合劑藥名",pBinder:"磷結合劑",pBinderName:"磷結合劑藥名",
+    suppCurOther:"其他營養品_目前",suppRecOther:"其他營養品_建議",
+    preDate:"前測日期",preLabDate:"檢驗日期",postDate:"後測日期",
+    preEgfr:"前測_eGFR",preEgfrHas:"前測_eGFR有無",preAlb:"前測_Albumin",preAlbHas:"前測_Alb有無",preK:"前測_K",preKHas:"前測_K有無",preP:"前測_P",prePHas:"前測_P有無",preHb:"前測_Hb",preHbHas:"前測_Hb有無",
+    preW6m:"前測_6月前體重",preWchange:"前測_體重減輕kg",preWchangePct:"前測_體重減輕%",preWt2wk:"前測_近2週體重變化",
+    preDietChange:"前測_飲食變化",preDietDuration:"前測_飲食變化期間_週",preDietType:"前測_飲食變化方式",
+    preGI_none:"前測_GI無症狀",preGI_nausea:"前測_GI噁心",preGI_vomit:"前測_GI嘔吐",preGI_diarrhea:"前測_GI腹瀉",preGI_anorexia:"前測_GI厭食",
+    preFunc:"前測_活動機能",preFuncDuration:"前測_機能受損期間",preFuncType:"前測_機能受損型態",
+    preDxMain:"前測_主要診斷",preDxStress:"前測_代謝壓力",
+    sgaFatLoss:"前測SGA_皮下脂肪喪失",sgaMuscleLoss:"前測SGA_肌肉耗損",sgaEdemaAnkle:"前測SGA_腳踝水腫",sgaEdemaSacral:"前測SGA_薦骨水腫",sgaAscites:"前測SGA_腹水",sgaRating:"前測SGA_整體評級",
+    postWeight:"後測_體重",postBmi:"後測_BMI",postEgfr:"後測_eGFR",postAlb:"後測_Albumin",postK:"後測_K",postP:"後測_P",postHb:"後測_Hb",
+    postW6m:"後測_6月前體重",postWchange:"後測_體重減輕kg",postWchangePct:"後測_體重減輕%",postWt2wk:"後測_近2週體重變化",
+    postDietChange:"後測_飲食變化",postDietDuration:"後測_飲食變化期間_週",postDietType:"後測_飲食變化方式",
+    postGI_none:"後測_GI無症狀",postGI_nausea:"後測_GI噁心",postGI_vomit:"後測_GI嘔吐",postGI_diarrhea:"後測_GI腹瀉",postGI_anorexia:"後測_GI厭食",
+    postFunc:"後測_活動機能",postFuncDuration:"後測_機能受損期間",postFuncType:"後測_機能受損型態",
+    postDxMain:"後測_主要診斷",postDxStress:"後測_代謝壓力",
+    post_sgaFatLoss:"後測SGA_皮下脂肪喪失",post_sgaMuscleLoss:"後測SGA_肌肉耗損",post_sgaEdemaAnkle:"後測SGA_腳踝水腫",post_sgaEdemaSacral:"後測SGA_薦骨水腫",post_sgaAscites:"後測SGA_腹水",postSgaRating:"後測SGA_整體評級",
+    preNote:"前測備註",postNote:"後測備註",susScore:"SUS分數"
+  };
+  SUPPS.forEach((s,i)=>{COL_MAP["supp_cur_"+i]="目前營養品_"+s;COL_MAP["supp_rec_"+i]="建議營養品_"+s});
+  ALL_T.forEach(t=>{
+    COL_MAP["preOld_"+t.k+"_lo"]="舊目標_"+t.l+"下限"+t.u;COL_MAP["preOld_"+t.k+"_hi"]="舊目標_"+t.l+"上限"+t.u;COL_MAP["preActual_"+t.k]="前測實際_"+t.l+t.u;
+    COL_MAP["t_"+t.k+"_lo"]="新目標_"+t.l+"下限"+t.u;COL_MAP["t_"+t.k+"_hi"]="新目標_"+t.l+"上限"+t.u;
+    COL_MAP["postActual_"+t.k]="後測實際_"+t.l+t.u;
+  });
+  MEALS.forEach(m=>{COL_MAP["preDiet_"+m]="飲食速記_"+m;COL_MAP["postDiet_"+m]="後測飲食_"+m});
+  SUS_Q.forEach((_,i)=>{COL_MAP["sus"+(i+1)]="SUS_Q"+(i+1)});
+  const mapped=recs.map(r=>{const o={"收案週次":calcWeek(r.preDate)};Object.keys(r).forEach(k=>{o[COL_MAP[k]||k]=r[k]});return o});
+  const ws=XLSX.utils.json_to_sheet(mapped);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"CRF");XLSX.writeFile(wb,"CRF_營養腎隊友_"+new Date().toISOString().slice(0,10)+".xlsx");flash("✓ 已匯出 Excel")}
 function importFile(e){const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=function(evt){try{const wb=XLSX.read(evt.target.result,{type:"array"});const ws=wb.Sheets[wb.SheetNames[0]];const data=XLSX.utils.sheet_to_json(ws);if(data.length>0){let updated=0,added=0;data.forEach(d=>{if(!d.subjectId)return;const idx=recs.findIndex(r=>r.subjectId===d.subjectId);if(idx>=0){recs[idx]=d;updated++}else{recs.push(d);added++}});persist();flash("✓ 合併完成：更新 "+updated+" 筆，新增 "+added+" 筆");showList()}}catch(err){flash("匯入失敗："+err.message)}};reader.readAsArrayBuffer(file);e.target.value=""}
 buildForm();updateTabbar();
 </script>
