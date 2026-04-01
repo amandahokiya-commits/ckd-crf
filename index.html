@@ -115,7 +115,7 @@ textarea{resize:vertical;min-height:60px}
 <div class="app">
 <div class="header">
   <h1>營養腎隊友 個案紀錄表</h1>
-  <p>Case Report Form (CRF) v8 ｜ 2026.03.27</p>
+  <p>Case Report Form (CRF) v9 ｜ 2026.04.01</p>
 </div>
 <div class="tabs" id="tabbar"></div>
 <div id="patientBar" class="hidden"></div>
@@ -124,7 +124,7 @@ textarea{resize:vertical;min-height:60px}
 <div id="listArea"></div>
 </div>
 <script>
-const TABS=[{id:"basic",label:"基本資料",cls:""},{id:"pre",label:"前測 SGA",cls:""},{id:"target",label:"目標設定",cls:"t-orange"},{id:"post",label:"後測",cls:"t-green"},{id:"sus",label:"SUS",cls:"t-green"}];
+const TABS=[{id:"basic",label:"基本資料",cls:""},{id:"diet",label:"飲食計畫",cls:"t-orange"},{id:"target",label:"目標設定",cls:"t-orange"},{id:"pre",label:"前測 SGA",cls:""},{id:"post",label:"後測",cls:"t-green"},{id:"sus",label:"SUS",cls:"t-green"}];
 const SGA_B=[{id:"sgaFatLoss",l:"皮下脂肪喪失（三頭肌、胸部）"},{id:"sgaMuscleLoss",l:"肌肉耗損（四頭肌、三角肌）"},{id:"sgaEdemaAnkle",l:"腳踝水腫"},{id:"sgaEdemaSacral",l:"薦骨水腫"},{id:"sgaAscites",l:"腹水"}];
 const SUS_Q=["我想我會經常使用這個系統","我認為這個系統過於複雜","我認為這個系統容易使用","我需要技術人員的幫助才能使用這個系統","我發現系統的各項功能整合良好","我覺得這個系統有太多不一致的地方","我認為大多數人能很快學會使用這個系統","我覺得使用這個系統很繁瑣","我對使用這個系統很有信心","我需要學習很多東西才能使用這個系統"];
 const MEALS=["早餐","午餐","晚餐","點心"];
@@ -138,12 +138,26 @@ const ALL_T=[...T_MACRO,...T_CKD,...T_SIX];
 const WEEK_START=new Date("2026-03-25");
 const calcWeek=(dateStr)=>{if(!dateStr)return"";const d=new Date(dateStr);const diff=Math.floor((d-WEEK_START)/(7*24*60*60*1000));return"W"+(Math.max(1,diff+1))};
 
+// Diet Plan food definitions (matching Nurmain backend)
+const DP_FOODS=[
+{cat:"乳品類",items:[{n:"全脂奶",k:"dp_milk_full",p:8,c:12,f:8,kcal:152},{n:"低脂奶",k:"dp_milk_low",p:8,c:12,f:4,kcal:116},{n:"脫脂奶",k:"dp_milk_skim",p:8,c:12,f:0,kcal:80}]},
+{cat:"水果類",items:[{n:"水果",k:"dp_fruit",p:0,c:15,f:0,kcal:60}]},
+{cat:"蔬菜類",items:[{n:"蔬菜",k:"dp_veg",p:1,c:5,f:0,kcal:24}]},
+{cat:"全穀雜糧類",items:[{n:"主食(米類)",k:"dp_grain_rice",p:1.5,c:15,f:0,kcal:66},{n:"主食(麥類)",k:"dp_grain_wheat",p:2.5,c:15,f:0,kcal:70},{n:"主食(低氮)",k:"dp_grain_ln",p:0,c:15,f:0,kcal:60}]},
+{cat:"豆魚蛋肉類",items:[{n:"低脂肉",k:"dp_meat_lo",p:7,c:0,f:3,kcal:55},{n:"中脂肉",k:"dp_meat_mid",p:7,c:0,f:5,kcal:73},{n:"高脂肉",k:"dp_meat_hi",p:7,c:0,f:10,kcal:118}]},
+{cat:"油脂與堅果種子類",items:[{n:"油脂",k:"dp_oil",p:0,c:0,f:5,kcal:45}]},
+{cat:"營養補充品",items:[{n:"易能充",k:"dp_supp_ec",p:0.85,c:30.7,f:8.2,kcal:200},{n:"三多低蛋白",k:"dp_supp_sd",p:3.9,c:31.3,f:11.1,kcal:240.7},{n:"腎補納",k:"dp_supp_sb",p:0,c:0,f:0,kcal:0}]}
+];
+const DP_ALL_KEYS=DP_FOODS.flatMap(c=>c.items.map(i=>i.k));
+
 function newF(){
   const f={subjectId:"",name:"",birthday:"",age:"",sex:"",height:"",weight:"",bmi:"",
     activity:"",ckdStage:"",dm:"",htn:"",hyperlipidemia:"",comorbidOther:"",assessor:"莊曉雯",
     antihtn:"",antihtnName:"",antiDM:"",antiDMName:"",lipidMed:"",lipidMedName:"",kBinder:"",kBinderName:"",pBinder:"",pBinderName:"",
     // current supplements (basic)
     ...Object.fromEntries(SUPPS.map((_,i)=>["supp_cur_"+i,""])),suppCurOther:"",
+    // Diet plan portions
+    ...Object.fromEntries(DP_ALL_KEYS.map(k=>[k,""])),
     // Pre
     preDate:"",preLabDate:"",postDate:"",
     preEgfr:"",preEgfrHas:"",preAlb:"",preAlbHas:"",preK:"",preKHas:"",preP:"",prePHas:"",preHb:"",preHbHas:"",
@@ -179,8 +193,8 @@ function newF(){
   };return f;
 }
 
-let F=newF(),recs=JSON.parse(localStorage.getItem("crf8")||localStorage.getItem("crf7")||"[]"),editIdx=null,curTab="basic";
-const persist=()=>localStorage.setItem("crf8",JSON.stringify(recs));
+let F=newF(),recs=JSON.parse(localStorage.getItem("crf9")||localStorage.getItem("crf8")||localStorage.getItem("crf7")||"[]"),editIdx=null,curTab="basic";
+const persist=()=>localStorage.setItem("crf9",JSON.stringify(recs));
 const flash=msg=>{const el=document.getElementById("flash");el.textContent=msg;el.style.display="block";setTimeout(()=>el.style.display="none",2000)};
 
 // === Helpers ===
@@ -424,11 +438,253 @@ function buildForm(){
   c.appendChild(sn);
   s0.appendChild(c);area.appendChild(s0);
 
-  // PRE (now = SGA only)
-  const s1=document.createElement("div");s1.id="sec_pre";s1.className=curTab==="pre"?"":"hidden";
-  let cp=mkCard("前測 SGA 評估");
-  buildSGA(cp,true);
-  s1.appendChild(cp);area.appendChild(s1);
+
+  // DIET PLAN (飲食計畫) — bidirectional validation
+  var sDiet=document.createElement("div");sDiet.id="sec_diet";sDiet.className=curTab==="diet"?"":"hidden";
+  var cdiet=mkCard("飲食計畫 — 份數分配與防呆驗證","orange");
+  cdiet.appendChild(mkNote("營養師可先填份數或先填目標值，系統即時雙向比對。確認後按「帶入目標設定」"));
+
+  // Info bar
+  var dpInfoDiv=document.createElement("div");dpInfoDiv.id="dpInfoBar";
+  dpInfoDiv.style.cssText="background:linear-gradient(135deg,#fff7ed,#ffedd5);border:1.5px solid #fed7aa;border-radius:12px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:#9a3412";
+  cdiet.appendChild(dpInfoDiv);
+
+  // Goal inputs
+  cdiet.appendChild(mkSub("目標值（可手動填寫）","orange"));
+  var dpGW=document.createElement("div");dpGW.style.cssText="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px";
+  var dpGItems=[{k:"cal",l:"🔥 熱量",u:"kcal"},{k:"pro",l:"🥩 蛋白質",u:"g"},{k:"fat",l:"🍖 脂肪",u:"g"},{k:"cho",l:"🍚 碳水化合物",u:"g"}];
+  dpGItems.forEach(function(g){
+    var gd=document.createElement("div");gd.style.cssText="background:#fffbeb;border:1.5px solid #fde68a;border-radius:10px;padding:8px 12px";
+    var gl=document.createElement("div");gl.style.cssText="font-size:12px;color:#92400e;margin-bottom:4px";gl.textContent=g.l;gd.appendChild(gl);
+    var gr=document.createElement("div");gr.style.cssText="display:flex;align-items:center;gap:6px";
+    var loK="t_"+g.k+"_lo",hiK="t_"+g.k+"_hi";
+    var mid=(parseFloat(F[loK])&&parseFloat(F[hiK]))?((parseFloat(F[loK])+parseFloat(F[hiK]))/2):0;
+    var gi=document.createElement("input");gi.type="number";gi.step="0.1";
+    gi.style.cssText="width:80px;text-align:center;font-size:15px;font-weight:600";
+    gi.value=mid?mid.toFixed(1):"";gi.id="dpGoal_"+g.k;
+    gi.addEventListener("input",function(){dpRecalc()});
+    gr.appendChild(gi);
+    var gu=document.createElement("span");gu.style.cssText="font-size:12px;color:#92400e";gu.textContent=g.u;gr.appendChild(gu);
+    gd.appendChild(gr);
+    var gh=document.createElement("div");gh.id="dpGoalHint_"+g.k;gh.style.cssText="font-size:11px;color:#b45309;margin-top:2px";
+    gd.appendChild(gh);dpGW.appendChild(gd);
+  });
+  cdiet.appendChild(dpGW);
+
+  // Food portion table
+  cdiet.appendChild(mkSub("細項份數分配（與 Nurmain 一致）","orange"));
+  var dpTbl=document.createElement("table");dpTbl.style.cssText="width:100%;border-collapse:collapse;font-size:13px";
+  var dpThead=document.createElement("tr");
+  ["食物類別","份數","蛋白質","醣類","脂肪","熱量"].forEach(function(hh,ii){
+    var th=document.createElement("th");
+    th.style.cssText="text-align:"+(ii>1?"right":"left")+";font-weight:600;font-size:12px;color:var(--text2);padding:6px 4px;border-bottom:2px solid var(--border)";
+    th.textContent=hh;dpThead.appendChild(th);
+  });
+  dpTbl.appendChild(dpThead);
+  DP_FOODS.forEach(function(cat){
+    var cr=document.createElement("tr");
+    var ctd=document.createElement("td");ctd.colSpan=6;
+    ctd.style.cssText="background:#f8f5f0;font-size:12px;color:var(--text2);font-weight:600;padding:4px 6px";
+    ctd.textContent=cat.cat;cr.appendChild(ctd);dpTbl.appendChild(cr);
+    cat.items.forEach(function(food){
+      var tr=document.createElement("tr");
+      var td1=document.createElement("td");
+      td1.style.cssText="font-weight:500;padding:5px 4px;border-bottom:1px solid var(--border);white-space:nowrap";
+      td1.textContent=food.n;tr.appendChild(td1);
+      var td2=document.createElement("td");td2.style.cssText="padding:5px 4px;border-bottom:1px solid var(--border)";
+      var inp=document.createElement("input");inp.type="number";inp.min="0";inp.max="30";inp.step="0.5";
+      inp.style.cssText="width:54px;text-align:center;font-size:13px;padding:6px 4px";
+      inp.value=F[food.k]||"";inp.dataset.dpk=food.k;
+      inp.addEventListener("input",function(){F[food.k]=this.value;dpRecalc()});
+      td2.appendChild(inp);tr.appendChild(td2);
+      ["p","c","f","kcal"].forEach(function(x){
+        var td=document.createElement("td");
+        td.style.cssText="text-align:right;font-size:12px;color:var(--text2);padding:5px 4px;border-bottom:1px solid var(--border)";
+        td.id="dp_cv_"+food.k+"_"+x;td.textContent="0";tr.appendChild(td);
+      });
+      dpTbl.appendChild(tr);
+    });
+  });
+  var dpTotR=document.createElement("tr");dpTotR.style.cssText="font-weight:700;background:#fffbeb";
+  var dpTotTd=document.createElement("td");dpTotTd.colSpan=2;
+  dpTotTd.style.cssText="padding:8px 4px;text-align:right;border-top:2px solid var(--orange)";
+  dpTotTd.textContent="份數加總";dpTotR.appendChild(dpTotTd);
+  ["p","c","f","kcal"].forEach(function(x){
+    var td=document.createElement("td");
+    td.style.cssText="text-align:right;padding:8px 4px;border-top:2px solid var(--orange);font-size:13px";
+    td.id="dp_tot_"+x;td.textContent="—";dpTotR.appendChild(td);
+  });
+  dpTbl.appendChild(dpTotR);
+  cdiet.appendChild(dpTbl);
+
+  // Compare + Alert containers
+  var dpCompDiv=document.createElement("div");dpCompDiv.id="dpCompare";cdiet.appendChild(dpCompDiv);
+  var dpAlertDiv=document.createElement("div");dpAlertDiv.id="dpAlert";dpAlertDiv.style.cssText="margin-top:10px";cdiet.appendChild(dpAlertDiv);
+
+  // Buttons
+  var dpBtnsDiv=document.createElement("div");dpBtnsDiv.style.cssText="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;justify-content:center";
+  var btnApply=document.createElement("button");btnApply.className="btn btn-orange";btnApply.textContent="📥 份數加總 → 帶入目標設定";
+  btnApply.addEventListener("click",function(){
+    var tots=dpGetSum();
+    var sets=[{k:"cal",v:Math.round(tots.kcal)},{k:"pro",v:parseFloat(tots.p.toFixed(1))},{k:"fat",v:parseFloat(tots.f.toFixed(1))},{k:"cho",v:parseFloat(tots.c.toFixed(1))}];
+    sets.forEach(function(s){
+      F["t_"+s.k+"_lo"]=(s.v*0.8).toFixed(1);F["t_"+s.k+"_hi"]=(s.v*1.2).toFixed(1);
+      var el=document.getElementById("dpGoal_"+s.k);if(el)el.value=s.v;
+    });
+    var sixMap={grain:0,meat:0,veg:0,fruit:0,dairy:0,oil:0};
+    DP_FOODS.forEach(function(cat){cat.items.forEach(function(food){
+      var v=parseFloat(F[food.k])||0;
+      if(food.k.indexOf("dp_milk")===0)sixMap.dairy+=v;
+      else if(food.k==="dp_fruit")sixMap.fruit+=v;
+      else if(food.k==="dp_veg")sixMap.veg+=v;
+      else if(food.k.indexOf("dp_grain")===0)sixMap.grain+=v;
+      else if(food.k.indexOf("dp_meat")===0)sixMap.meat+=v;
+      else if(food.k==="dp_oil")sixMap.oil+=v;
+    })});
+    Object.keys(sixMap).forEach(function(k){
+      F["t_"+k+"_lo"]=(sixMap[k]*0.8).toFixed(1);F["t_"+k+"_hi"]=(sixMap[k]*1.2).toFixed(1);
+    });
+    // Also add water/Na/P/K defaults if empty
+    // Sync TARGET tab DOM inputs
+    document.querySelectorAll("#sec_target input[data-key]").forEach(function(inp){
+      var k=inp.dataset.key;if(F[k]!==undefined&&F[k]!=="")inp.value=F[k];
+    });
+    // Sync TARGET tab midpoint inputs (the orange-bordered ones without data-key)
+    // These are the "目標值" inputs in mkRange — they don't have data-key
+    // We need to rebuild them: find all range-row inside sec_target and update
+    var targetSec=document.getElementById("sec_target");
+    if(targetSec){
+      targetSec.querySelectorAll(".range-row").forEach(function(row){
+        var inputs=row.querySelectorAll("input[type=number]");
+        if(inputs.length>=3){
+          // inputs[0]=midpoint, inputs[1]=lo, inputs[2]=hi
+          var loInp=inputs[1],hiInp=inputs[2],midInp=inputs[0];
+          if(loInp.dataset.key&&F[loInp.dataset.key]){
+            loInp.value=F[loInp.dataset.key];
+            hiInp.value=F[hiInp.dataset.key]||"";
+            var loV=parseFloat(F[loInp.dataset.key])||0;
+            var hiV=parseFloat(F[hiInp.dataset.key])||0;
+            if(loV>0&&hiV>0)midInp.value=((loV+hiV)/2).toFixed(1);
+          }
+        }
+      });
+    }
+    dpRecalc();flash("✓ 已將份數加總帶入目標設定");
+  });
+  dpBtnsDiv.appendChild(btnApply);
+  var btnClear=document.createElement("button");btnClear.className="btn btn-gray";btnClear.textContent="🗑 清除份數";
+  btnClear.addEventListener("click",function(){
+    DP_ALL_KEYS.forEach(function(k){F[k]=""});
+    document.querySelectorAll("[data-dpk]").forEach(function(el){el.value=""});
+    dpRecalc();
+  });
+  dpBtnsDiv.appendChild(btnClear);
+  cdiet.appendChild(dpBtnsDiv);
+
+  // Append diet section to DOM
+  sDiet.appendChild(cdiet);area.appendChild(sDiet);
+
+  // --- Diet Plan Calculation Functions ---
+  function dpGetProRef(stage,bwv){
+    var r={"1":[0.8,1.2],"2":[0.8,1.2],"3a":[0.6,0.8],"3b":[0.6,0.8],"4":[0.6,0.8],"5":[0.6,0.8],"5d":[1.0,1.2]}[stage]||[0.6,0.8];
+    return[Math.round(r[0]*bwv*10)/10,Math.round(r[1]*bwv*10)/10];
+  }
+  function dpGetSum(){
+    var p=0,ch=0,ft=0,kc=0;
+    DP_FOODS.forEach(function(cat){cat.items.forEach(function(food){
+      var v=parseFloat(F[food.k])||0;
+      p+=v*food.p;ch+=v*food.c;ft+=v*food.f;kc+=v*food.kcal;
+    })});
+    return{p:p,c:ch,f:ft,kcal:kc};
+  }
+  function dpRecalc(){
+    try{
+      // Info bar
+      var bwv=parseFloat(F.weight)||0,stgv=F.ckdStage||"";
+      var ib=document.getElementById("dpInfoBar");
+      if(ib){
+        var ih="<b>個案資訊：</b> 體重 "+(bwv||"—")+" kg · CKD "+(stgv||"—");
+        if(bwv>0&&stgv){var pr=dpGetProRef(stgv,bwv);ih+=" · 蛋白質建議 "+pr[0]+"~"+pr[1]+"g · 熱量建議 "+Math.round(bwv*25)+"~"+Math.round(bwv*35)+" kcal"}
+        if(!bwv||!stgv)ih+="<br>⚠️ 請先在基本資料填寫體重與CKD分期";
+        ib.innerHTML=ih;
+      }
+      // Per-item cells
+      DP_FOODS.forEach(function(cat){cat.items.forEach(function(food){
+        var v=parseFloat(F[food.k])||0;
+        var e1=document.getElementById("dp_cv_"+food.k+"_p");if(e1)e1.textContent=(v*food.p).toFixed(1);
+        var e2=document.getElementById("dp_cv_"+food.k+"_c");if(e2)e2.textContent=(v*food.c).toFixed(1);
+        var e3=document.getElementById("dp_cv_"+food.k+"_f");if(e3)e3.textContent=(v*food.f).toFixed(1);
+        var e4=document.getElementById("dp_cv_"+food.k+"_kcal");if(e4)e4.textContent=(v*food.kcal).toFixed(1);
+      })});
+      // Totals
+      var tots=dpGetSum();
+      var tp=document.getElementById("dp_tot_p");if(tp)tp.textContent=tots.p.toFixed(1)+"g";
+      var tc=document.getElementById("dp_tot_c");if(tc)tc.textContent=tots.c.toFixed(1)+"g";
+      var tf=document.getElementById("dp_tot_f");if(tf)tf.textContent=tots.f.toFixed(1)+"g";
+      var tk=document.getElementById("dp_tot_kcal");if(tk)tk.textContent=Math.round(tots.kcal)+" kcal";
+      // Goals
+      var elCal=document.getElementById("dpGoal_cal"),elPro=document.getElementById("dpGoal_pro");
+      var elFat=document.getElementById("dpGoal_fat"),elCho=document.getElementById("dpGoal_cho");
+      var gCal=elCal?parseFloat(elCal.value)||0:0;
+      var gPro=elPro?parseFloat(elPro.value)||0:0;
+      var gFat=elFat?parseFloat(elFat.value)||0:0;
+      var gCho=elCho?parseFloat(elCho.value)||0:0;
+      // Hints
+      if(bwv>0&&stgv){
+        var prR=dpGetProRef(stgv,bwv);
+        var hP=document.getElementById("dpGoalHint_pro");if(hP)hP.textContent="CKD "+stgv+" 建議 "+prR[0]+"~"+prR[1]+"g";
+        var hK=document.getElementById("dpGoalHint_cal");if(hK)hK.textContent="建議 "+Math.round(bwv*25)+"~"+Math.round(bwv*35)+" kcal";
+      }
+      if(gCal>0){
+        var hF=document.getElementById("dpGoalHint_fat");if(hF)hF.textContent="建議佔 20~30% = "+Math.round(gCal*0.2/9)+"~"+Math.round(gCal*0.3/9)+"g";
+        var hC=document.getElementById("dpGoalHint_cho");if(hC)hC.textContent="建議佔 50~60% = "+Math.round(gCal*0.5/4)+"~"+Math.round(gCal*0.6/4)+"g";
+      }
+      // Compare
+      var hasP=tots.kcal>0,hasG=gCal>0;
+      var comp=document.getElementById("dpCompare");
+      if(comp){
+        if(!hasP&&!hasG){comp.innerHTML="";comp.style.cssText="";}
+        else{
+          var ms=[{l:"蛋白質",s:tots.p,g:gPro,u:"g"},{l:"醣類",s:tots.c,g:gCho,u:"g"},{l:"脂肪",s:tots.f,g:gFat,u:"g"},{l:"熱量",s:tots.kcal,g:gCal,u:"kcal"}];
+          var mh='<div style="display:grid;grid-template-columns:1fr 40px 1fr;gap:4px;font-size:13px"><div style="text-align:center;font-weight:600;font-size:12px;color:var(--orange)">份數加總</div><div></div><div style="text-align:center;font-weight:600;font-size:12px;color:var(--blue)">手填目標</div>';
+          ms.forEach(function(m){
+            var diff=(m.g>0)?Math.abs(m.s-m.g)/m.g:0;
+            var cl=diff<=0.05?"color:#16a34a":diff<=0.15?"color:#d97706":"color:#dc2626";
+            var sv=m.u==="kcal"?Math.round(m.s):m.s.toFixed(1);
+            var gv=m.g>0?(m.u==="kcal"?Math.round(m.g):m.g.toFixed(1)):null;
+            mh+='<div style="text-align:center;padding:2px 0;'+cl+'">'+m.l+" "+sv+m.u+'</div><div style="text-align:center;color:var(--text3)">⟷</div><div style="text-align:center;padding:2px 0">'+(gv!==null?gv+m.u:"—")+'</div>';
+          });
+          mh+='</div>';comp.innerHTML=mh;
+          comp.style.cssText="margin-top:14px;border-radius:12px;padding:12px;background:#fefce8;border:1px solid #fde68a";
+        }
+      }
+      // Alerts
+      var alerts=[];
+      if(hasP&&hasG){
+        if(gPro>0&&Math.abs(tots.p-gPro)/gPro>0.1)alerts.push("⚠️ 蛋白質：份數 "+tots.p.toFixed(1)+"g vs 目標 "+gPro+"g（差 "+Math.round(Math.abs(tots.p-gPro)/gPro*100)+"%)");
+        if(gCal>0&&Math.abs(tots.kcal-gCal)/gCal>0.05)alerts.push("⚠️ 熱量：份數 "+Math.round(tots.kcal)+" vs 目標 "+gCal+" kcal（差 "+Math.round(Math.abs(tots.kcal-gCal)/gCal*100)+"%)");
+        if(gFat>0&&Math.abs(tots.f-gFat)/gFat>0.15)alerts.push("⚠️ 脂肪：份數 "+tots.f.toFixed(1)+"g vs 目標 "+gFat+"g（差 "+Math.round(Math.abs(tots.f-gFat)/gFat*100)+"%)");
+        if(gCho>0&&Math.abs(tots.c-gCho)/gCho>0.15)alerts.push("⚠️ 醣類：份數 "+tots.c.toFixed(1)+"g vs 目標 "+gCho+"g（差 "+Math.round(Math.abs(tots.c-gCho)/gCho*100)+"%)");
+        var kcChk=gPro*4+gFat*9+gCho*4;
+        if(gPro>0&&gFat>0&&gCho>0&&gCal>0&&Math.abs(kcChk-gCal)/gCal>0.05)alerts.push("⚠️ 三大營養素回推 "+Math.round(kcChk)+" kcal ≠ 熱量目標 "+gCal+" kcal");
+      }
+      if(bwv>0&&stgv){
+        var prC=dpGetProRef(stgv,bwv);var pv=hasP?tots.p:(gPro||0);
+        if(pv>0&&(pv<prC[0]||pv>prC[1]))alerts.push("⚠️ 蛋白質 "+pv.toFixed(1)+"g 超出 CKD "+stgv+" 建議 "+prC[0]+"~"+prC[1]+"g");
+        var kv=hasP?tots.kcal:(gCal||0);var kLo=Math.round(bwv*25),kHi=Math.round(bwv*35);
+        if(kv>0&&(kv<kLo||kv>kHi))alerts.push("⚠️ 熱量 "+Math.round(kv)+" kcal 超出建議 "+kLo+"~"+kHi+" kcal");
+      }
+      var ad=document.getElementById("dpAlert");
+      if(ad){
+        if(alerts.length===0&&(hasP||hasG)){ad.innerHTML='<div style="background:#dcfce7;border:1px solid #86efac;border-radius:10px;padding:10px 14px;font-size:13px;color:#166534">✓ 份數分配與目標值吻合'+(bwv>0&&stgv?"，且符合 CKD 建議範圍":"")+'</div>';}
+        else if(alerts.length>0){ad.innerHTML='<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:10px 14px;font-size:13px;color:#991b1b;line-height:1.8">'+alerts.join("<br>")+'</div>';}
+        else{ad.innerHTML="";}
+      }
+    }catch(err){console.error("dpRecalc:",err);}
+  }
+  setTimeout(dpRecalc,100);
+  window._dpRecalc=dpRecalc;
+
 
   // TARGET
   const s2=document.createElement("div");s2.id="sec_target";s2.className=curTab==="target"?"":"hidden";
@@ -444,6 +700,12 @@ function buildForm(){
   ct.appendChild(mkSupps("supp_rec_","on-orange"));
   ct.appendChild(mkRow("其他營養品",mkI("suppRecOther",{ph:"請填寫"})));
   s2.appendChild(ct);area.appendChild(s2);
+
+  // PRE (前測 SGA)
+  const s1=document.createElement("div");s1.id="sec_pre";s1.className=curTab==="pre"?"":"hidden";
+  let cp=mkCard("前測 SGA 評估");
+  buildSGA(cp,true);
+  s1.appendChild(cp);area.appendChild(s1);
 
   // POST
   const s3=document.createElement("div");s3.id="sec_post";s3.className=curTab==="post"?"":"hidden";
@@ -516,7 +778,7 @@ function buildForm(){
   updateCond();
 }
 
-function switchTab(id){curTab=id;TABS.forEach(t=>{const s=document.getElementById("sec_"+t.id);if(s)s.className=t.id===id?"":"hidden"});document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.tid===id))}
+function switchTab(id){curTab=id;TABS.forEach(t=>{const s=document.getElementById("sec_"+t.id);if(s)s.className=t.id===id?"":"hidden"});document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.tid===id));if(id==="diet"&&window._dpRecalc)try{window._dpRecalc()}catch(e){}}
 function updateTabbar(){const bar=document.getElementById("tabbar");bar.innerHTML="";if(document.getElementById("formArea").className==="hidden"){bar.className="tabs hidden";return}bar.className="tabs";TABS.forEach(t=>{const b=document.createElement("button");b.className="tab"+(t.cls?" "+t.cls:"")+(curTab===t.id?" active":"");b.textContent=t.label;b.dataset.tid=t.id;b.addEventListener("click",()=>switchTab(t.id));bar.appendChild(b)})}
 function updatePatientBar(){const pb=document.getElementById("patientBar");if(document.getElementById("formArea").className==="hidden"){pb.className="hidden";return}pb.className="patient-bar";pb.innerHTML="";
   const info=document.createElement("div");
@@ -588,6 +850,7 @@ function buildColMap(){
     COL_MAP["postActual_"+t.k]="後測實際_"+t.l+t.u;
   });
   MEALS.forEach(m=>{COL_MAP["preDiet_"+m]="飲食速記_"+m;COL_MAP["postDiet_"+m]="後測飲食_"+m});
+  DP_FOODS.forEach(cat=>cat.items.forEach(f=>{COL_MAP[f.k]="飲食計畫_"+f.n+"_份"}));
   SUS_Q.forEach((_,i)=>{COL_MAP["sus"+(i+1)]="SUS_Q"+(i+1)});
   return COL_MAP;
 }
