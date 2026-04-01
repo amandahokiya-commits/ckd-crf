@@ -560,7 +560,7 @@ function showList(){
 }
 function enterForm(){document.getElementById("listArea").className="hidden";document.getElementById("formArea").className="";buildForm();switchTab("basic");updateTabbar();updatePatientBar()}
 function showForm(){enterForm()}
-function exportXLSX(){if(recs.length===0)return flash("無資料可匯出");
+function buildColMap(){
   const COL_MAP={subjectId:"受試者編號",name:"姓名",birthday:"生日",age:"年齡",sex:"性別",height:"身高cm",weight:"體重kg",bmi:"BMI",activity:"活動量",ckdStage:"CKD分期",dm:"DM",htn:"HTN",hyperlipidemia:"高血脂",comorbidOther:"其他共病",assessor:"評估者",
     antihtn:"降血壓藥",antihtnName:"降血壓藥名",antiDM:"降血糖藥",antiDMName:"降血糖藥名",lipidMed:"血脂用藥",lipidMedName:"血脂藥名",kBinder:"鉀結合劑",kBinderName:"鉀結合劑藥名",pBinder:"磷結合劑",pBinderName:"磷結合劑藥名",
     suppCurOther:"其他營養品_目前",suppRecOther:"其他營養品_建議",
@@ -589,9 +589,34 @@ function exportXLSX(){if(recs.length===0)return flash("無資料可匯出");
   });
   MEALS.forEach(m=>{COL_MAP["preDiet_"+m]="飲食速記_"+m;COL_MAP["postDiet_"+m]="後測飲食_"+m});
   SUS_Q.forEach((_,i)=>{COL_MAP["sus"+(i+1)]="SUS_Q"+(i+1)});
+  return COL_MAP;
+}
+function exportXLSX(){if(recs.length===0)return flash("無資料可匯出");
+  const COL_MAP=buildColMap();
   const mapped=recs.map(r=>{const o={"收案週次":calcWeek(r.preDate)};Object.keys(r).forEach(k=>{o[COL_MAP[k]||k]=r[k]});return o});
   const ws=XLSX.utils.json_to_sheet(mapped);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"CRF");XLSX.writeFile(wb,"CRF_營養腎隊友_"+new Date().toISOString().slice(0,10)+".xlsx");flash("✓ 已匯出 Excel")}
-function importFile(e){const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=function(evt){try{const wb=XLSX.read(evt.target.result,{type:"array"});const ws=wb.Sheets[wb.SheetNames[0]];const data=XLSX.utils.sheet_to_json(ws);if(data.length>0){let updated=0,added=0;data.forEach(d=>{if(!d.subjectId)return;const idx=recs.findIndex(r=>r.subjectId===d.subjectId);if(idx>=0){recs[idx]=d;updated++}else{recs.push(d);added++}});persist();flash("✓ 合併完成：更新 "+updated+" 筆，新增 "+added+" 筆");showList()}}catch(err){flash("匯入失敗："+err.message)}};reader.readAsArrayBuffer(file);e.target.value=""}
+function importFile(e){const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=function(evt){try{const wb=XLSX.read(evt.target.result,{type:"array"});const ws=wb.Sheets[wb.SheetNames[0]];const data=XLSX.utils.sheet_to_json(ws);if(data.length>0){
+  // Build reverse map: Chinese header -> English key
+  const REV={};const CM=buildColMap();Object.keys(CM).forEach(k=>{REV[CM[k]]=k});
+  let updated=0,added=0;
+  data.forEach(d=>{
+    // Remap Chinese headers to English keys
+    const mapped={};Object.keys(d).forEach(h=>{const k=REV[h]||h;if(k!=="收案週次")mapped[k]=d[h]!=null?String(d[h]):""});
+    const id=mapped.subjectId||d.subjectId||d["受試者編號"];
+    if(!id)return;
+    mapped.subjectId=id;
+    const idx=recs.findIndex(r=>r.subjectId===id);
+    if(idx>=0){
+      // Smart merge: only overwrite non-empty fields
+      Object.keys(mapped).forEach(k=>{if(mapped[k]!=="")recs[idx][k]=mapped[k]});
+      updated++;
+    }else{
+      const nr=newF();Object.keys(mapped).forEach(k=>{nr[k]=mapped[k]});
+      recs.push(nr);added++;
+    }
+  });
+  persist();flash("✓ 合併完成：更新 "+updated+" 筆，新增 "+added+" 筆");showList();
+}}catch(err){flash("匯入失敗："+err.message)}};reader.readAsArrayBuffer(file);e.target.value=""}
 showList();
 </script>
 </body>
