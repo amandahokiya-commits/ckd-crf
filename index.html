@@ -138,7 +138,7 @@ const ALL_T=[...T_MACRO,...T_CKD,...T_SIX];
 const WEEK_START=new Date("2026-03-25");
 const calcWeek=(dateStr)=>{if(!dateStr)return"";const d=new Date(dateStr);const diff=Math.floor((d-WEEK_START)/(7*24*60*60*1000));return"W"+(Math.max(1,diff+1))};
 
-// Diet Plan food definitions (matching Nurmain backend)
+// Diet Plan food definitions (matching 營養師醫院系統的飲食計畫)
 const DP_FOODS=[
 {cat:"乳品類",items:[{n:"全脂奶",k:"dp_milk_full",p:8,c:12,f:8,kcal:152},{n:"低脂奶",k:"dp_milk_low",p:8,c:12,f:4,kcal:116},{n:"脫脂奶",k:"dp_milk_skim",p:8,c:12,f:0,kcal:80}]},
 {cat:"水果類",items:[{n:"水果",k:"dp_fruit",p:0,c:15,f:0,kcal:60}]},
@@ -472,7 +472,7 @@ function buildForm(){
   cdiet.appendChild(dpGW);
 
   // Food portion table
-  cdiet.appendChild(mkSub("細項份數分配（與 Nurmain 一致）","orange"));
+  cdiet.appendChild(mkSub("細項份數分配（與營養師醫院系統一致）","orange"));
   var dpTbl=document.createElement("table");dpTbl.style.cssText="width:100%;border-collapse:collapse;font-size:13px";
   var dpThead=document.createElement("tr");
   ["食物類別","份數","蛋白質","醣類","脂肪","熱量"].forEach(function(hh,ii){
