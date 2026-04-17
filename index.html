@@ -154,7 +154,7 @@ textarea{resize:vertical;min-height:60px}
 <div class="app">
 <div class="header">
   <h1>營養腎隊友 個案紀錄表</h1>
-  <p>Case Report Form (CRF) v11.2 ｜ 2026.04.15 ｜ <span id="syncBadge" class="sync-status local">💾 本機儲存</span></p>
+  <p>Case Report Form (CRF) v11.3 ｜ 2026.04.17 ｜ <span id="syncBadge" class="sync-status local">💾 本機儲存</span></p>
 </div>
 <div class="tabs" id="tabbar"></div>
 <div id="patientBar" class="hidden"></div>
@@ -380,7 +380,7 @@ const DP_FOODS=[
 const DP_ALL_KEYS=DP_FOODS.flatMap(c=>c.items.map(i=>i.k));
 
 function newF(){
-  const f={subjectId:"",chartNo:"",clinicDietitian:"",name:"",birthday:"",age:"",sex:"",height:"",weight:"",bmi:"",
+  const f={subjectId:"",chartNo:"",clinicDietitian:"",name:"",phone:"",birthday:"",age:"",sex:"",height:"",weight:"",bmi:"",
     activity:"",ckdStage:"",dm:"",htn:"",hyperlipidemia:"",comorbidOther:"",assessor:"莊曉雯",
     antihtn:"",antihtnName:"",antiDM:"",antiDMName:"",lipidMed:"",lipidMedName:"",kBinder:"",kBinderName:"",pBinder:"",pBinderName:"",
     ...Object.fromEntries(SUPPS.map((_,i)=>["supp_cur_"+i,""])),suppCurOther:"",
@@ -625,7 +625,7 @@ const updateCond=()=>{document.querySelectorAll(".cond").forEach(el=>{el.classLi
 const mkCond=(key,val)=>{const d=document.createElement("div");d.className="cond"+(F[key]===val?" show":"");d.dataset.condKey=key;d.dataset.condVal=val;return d};
 const calcBMI=(hk,wk,bk)=>{const h=parseFloat(F[hk]),w=parseFloat(F[wk]);if(h>0&&w>0){const b=(w/((h/100)**2)).toFixed(1);F[bk]=b;const el=document.getElementById("auto_"+bk);if(el)el.textContent=b}else{F[bk]="";const el=document.getElementById("auto_"+bk);if(el)el.textContent="—"}};
 const calcAge=()=>{if(!F.birthday)return;const b=new Date(F.birthday),t=new Date();let a=t.getFullYear()-b.getFullYear();if(t.getMonth()<b.getMonth()||(t.getMonth()===b.getMonth()&&t.getDate()<b.getDate()))a--;F.age=String(a);const el=document.getElementById("auto_age");if(el)el.textContent=a+"歲"};
-const calcPostDate=()=>{if(!F.preDate)return;const d=new Date(F.preDate);d.setMonth(d.getMonth()+3);if(!F.postDate)F.postDate=d.toISOString().slice(0,10);const el=document.querySelector('[data-key="postDate"]');if(el&&!el.value)el.value=F.postDate};
+const calcPostDate=()=>{if(!F.preDate)return;const d=new Date(F.preDate);d.setDate(d.getDate()+84);if(!F.postDate)F.postDate=d.toISOString().slice(0,10);const el=document.querySelector('[data-key="postDate"]');if(el&&!el.value)el.value=F.postDate};
 const calcWc=(w6k,wk,ck,pk)=>{const w6=parseFloat(F[w6k]),w=parseFloat(F[wk]);if(w6>0&&w>0){const c=(w6-w).toFixed(1),p=((w6-w)/w6*100).toFixed(1);F[ck]=c;F[pk]=p;const e1=document.getElementById("auto_"+ck);if(e1)e1.textContent=(c>0?"-":"+")+Math.abs(c)+"kg";const e2=document.getElementById("auto_"+pk);if(e2)e2.textContent=(p>0?"-":"+")+Math.abs(p)+"%"}};
 
 function mkRange(tItem,prefix){
@@ -737,6 +737,7 @@ function buildForm(){
   c.appendChild(mkRow("受試者編號",mkI("subjectId",{ph:"CRF-001"})));
   c.appendChild(mkRow("病歷號",mkI("chartNo",{ph:"醫院病歷號碼"})));
   c.appendChild(mkRow("姓名",mkI("name")));
+  c.appendChild(mkRow("聯絡電話",mkI("phone",{ph:"手機或市話"})));
   c.appendChild(mkRow("門診營養師",mkI("clinicDietitian",{ph:"姓名"})));
   const bdR=document.createElement("div");bdR.className="row";
   bdR.appendChild(Object.assign(document.createElement("div"),{className:"lbl",textContent:"生日"}));
@@ -851,6 +852,85 @@ function buildForm(){
     gd.appendChild(gh);dpGW.appendChild(gd);
   });
   cdiet.appendChild(dpGW);
+  // === 參考文獻展開區塊 ===
+  var refDetails=document.createElement("details");refDetails.className="sticky-note";
+  refDetails.style.cssText="background:#f8fafc;border:1.5px solid #cbd5e1;border-radius:10px;margin-bottom:14px";
+  var refSum=document.createElement("summary");refSum.style.cssText="padding:8px 14px;cursor:pointer;font-weight:600;font-size:12px;color:#475569;list-style:none;display:flex;align-items:center;gap:6px";
+  refSum.innerHTML="📚 臨床營養處方計算流程與文獻依據 <span style='font-weight:400;color:#94a3b8;font-size:11px'>（點擊展開）</span>";
+  refDetails.appendChild(refSum);
+  var refBody=document.createElement("div");refBody.style.cssText="padding:10px 14px;font-size:12px;line-height:1.9;color:#334155";
+  refBody.innerHTML=""
+    // Step 1
+    +"<div style='background:#fffbeb;border-left:3px solid #d97706;padding:8px 12px;margin-bottom:10px;border-radius:0 8px 8px 0'>"
+    +"<b style='color:#92400e'>Step 1｜決定計算用體重</b><br>"
+    +"<b>IBW</b>（理想體重）= 22 × 身高(m)² <span style='color:#6b7280;font-size:11px'>[1][4]</span><br>"
+    +"BMI 18.5–24：使用<b>實際體重</b><br>"
+    +"BMI ≥ 24：使用<b>調整體重</b> = IBW + 0.25 ×（實際體重 − IBW）<span style='color:#6b7280;font-size:11px'>[2] 營養評估用 0.25；藥物劑量用 0.4</span><br>"
+    +"BMI < 18.5：使用<b>實際體重</b>，但營養目標需往上調整"
+    +"</div>"
+    // Step 2
+    +"<div style='background:#fffbeb;border-left:3px solid #d97706;padding:8px 12px;margin-bottom:10px;border-radius:0 8px 8px 0'>"
+    +"<b style='color:#92400e'>Step 2｜決定熱量目標</b><br>"
+    +"<b>熱量 = 體重(kg) × 活動因子(kcal/kg/day)</b><br>"
+    +"全分期建議 <b>25–35 kcal/kg/day</b> <span style='color:#6b7280;font-size:11px'>[1] KDOQI 2020 §3.1.1（1C）</span><br>"
+    +"臨床實務：臥床 ≈25 ｜ 輕度活動 25–30 ｜ 中度活動 30–35"
+    +"</div>"
+    // Step 3
+    +"<div style='background:#fffbeb;border-left:3px solid #d97706;padding:8px 12px;margin-bottom:10px;border-radius:0 8px 8px 0'>"
+    +"<b style='color:#92400e'>Step 3｜決定蛋白質（CKD 飲食治療核心）</b><br>"
+    +"<b>蛋白質 = 體重(kg) × 蛋白質係數(g/kg/day)</b><br>"
+    +"⚠️ KDOQI 2020 蛋白質建議基準為 <b>ideal body weight</b> <span style='color:#6b7280;font-size:11px'>[1][3]</span><br>"
+    +"<table style='width:100%;font-size:11.5px;margin:6px 0;border-collapse:collapse'>"
+    +"<tr style='background:#fef3c7'><td style='padding:3px 6px;border:1px solid #fde68a'><b>CKD 分期</b></td><td style='padding:3px 6px;border:1px solid #fde68a'><b>g/kg IBW/day</b></td><td style='padding:3px 6px;border:1px solid #fde68a'><b>KDOQI 2020 條文</b></td></tr>"
+    +"<tr><td style='padding:3px 6px;border:1px solid #fde68a'>CKD 1–2</td><td style='padding:3px 6px;border:1px solid #fde68a'>0.8–1.2（一般成人 RDA）</td><td style='padding:3px 6px;border:1px solid #fde68a'>未設限；參考台灣第九版 DRIs [4]</td></tr>"
+    +"<tr><td style='padding:3px 6px;border:1px solid #fde68a'>CKD 3a–5（非 DM）</td><td style='padding:3px 6px;border:1px solid #fde68a'>0.55–0.60</td><td style='padding:3px 6px;border:1px solid #fde68a'>§3.0.1（1A）</td></tr>"
+    +"<tr><td style='padding:3px 6px;border:1px solid #fde68a'>CKD 3–5（合併 DM）</td><td style='padding:3px 6px;border:1px solid #fde68a'>0.6–0.8</td><td style='padding:3px 6px;border:1px solid #fde68a'>§3.0.2（OPINION）</td></tr>"
+    +"<tr><td style='padding:3px 6px;border:1px solid #fde68a'>CKD 5D（透析）</td><td style='padding:3px 6px;border:1px solid #fde68a'>1.0–1.2</td><td style='padding:3px 6px;border:1px solid #fde68a'>§3.0.3（MHD 1C / PD OPINION）</td></tr>"
+    +"</table>"
+    +"本系統取 CKD 3a–5 = <b>0.6–0.8</b>，涵蓋 DM 與非 DM 兩種情境"
+    +"</div>"
+    // Step 4-5
+    +"<div style='background:#fffbeb;border-left:3px solid #d97706;padding:8px 12px;margin-bottom:10px;border-radius:0 8px 8px 0'>"
+    +"<b style='color:#92400e'>Step 4–5｜三大營養素熱量分配</b><br>"
+    +"① 蛋白質熱量 = 蛋白質(g) × 4 kcal/g<br>"
+    +"② 脂肪 = 總熱量 × <b>20–30%</b> ÷ 9 → 得 g <span style='color:#6b7280;font-size:11px'>[4] 台灣第九版 DRIs AMDR 20–30%</span><br>"
+    +"③ 醣類 = （總熱量 − 蛋白質熱量 − 脂肪熱量）÷ 4 → 得 g<br>"
+    +"<span style='color:#6b7280;font-size:11px'>[4] 台灣第九版 DRIs AMDR 醣類 50–65%（11 歲以上）；CKD 取 50–60%</span><br>"
+    +"⚠️ 醣類是「<b>剩餘</b>」算出來的，不是獨立設定 → 系統防呆：P×4 + F×9 + C×4 ≈ 總熱量"
+    +"</div>"
+    // Step 6
+    +"<div style='background:#fffbeb;border-left:3px solid #d97706;padding:8px 12px;margin-bottom:10px;border-radius:0 8px 8px 0'>"
+    +"<b style='color:#92400e'>Step 6｜換算六大類食物份數（台灣食物代換表）</b><br>"
+    +"<table style='width:100%;font-size:11px;margin:6px 0;border-collapse:collapse'>"
+    +"<tr style='background:#fef3c7'><td style='padding:2px 4px;border:1px solid #fde68a'><b>食物類別</b></td><td style='padding:2px 4px;border:1px solid #fde68a;text-align:right'><b>蛋白質 g</b></td><td style='padding:2px 4px;border:1px solid #fde68a;text-align:right'><b>脂肪 g</b></td><td style='padding:2px 4px;border:1px solid #fde68a;text-align:right'><b>醣類 g</b></td><td style='padding:2px 4px;border:1px solid #fde68a;text-align:right'><b>kcal</b></td></tr>"
+    +"<tr><td style='padding:2px 4px;border:1px solid #fde68a'>全穀雜糧（一般）</td><td style='padding:2px 4px;border:1px solid #fde68a;text-align:right'>2</td><td style='padding:2px 4px;border:1px solid #fde68a;text-align:right'>0</td><td style='padding:2px 4px;border:1px solid #fde68a;text-align:right'>15</td><td style='padding:2px 4px;border:1px solid #fde68a;text-align:right'>70</td></tr>"
+    +"<tr><td style='padding:2px 4px;border:1px solid #fde68a'>低蛋白澱粉</td><td style='padding:2px 4px;border:1px solid #fde68a;text-align:right'>0.3</td><td style='padding:2px 4px;border:1px solid #fde68a;text-align:right'>0</td><td style='padding:2px 4px;border:1px solid #fde68a;text-align:right'>15</td><td style='padding:2px 4px;border:1px solid #fde68a;text-align:right'>62</td></tr>"
+    +"<tr><td style='padding:2px 4px;border:1px solid #fde68a'>豆魚蛋肉（低脂）</td><td style='padding:2px 4px;border:1px solid #fde68a;text-align:right'>7</td><td style='padding:2px 4px;border:1px solid #fde68a;text-align:right'>3</td><td style='padding:2px 4px;border:1px solid #fde68a;text-align:right'>0</td><td style='padding:2px 4px;border:1px solid #fde68a;text-align:right'>55</td></tr>"
+    +"<tr><td style='padding:2px 4px;border:1px solid #fde68a'>豆魚蛋肉（中脂）</td><td style='padding:2px 4px;border:1px solid #fde68a;text-align:right'>7</td><td style='padding:2px 4px;border:1px solid #fde68a;text-align:right'>5</td><td style='padding:2px 4px;border:1px solid #fde68a;text-align:right'>0</td><td style='padding:2px 4px;border:1px solid #fde68a;text-align:right'>75</td></tr>"
+    +"<tr><td style='padding:2px 4px;border:1px solid #fde68a'>蔬菜</td><td style='padding:2px 4px;border:1px solid #fde68a;text-align:right'>1</td><td style='padding:2px 4px;border:1px solid #fde68a;text-align:right'>0</td><td style='padding:2px 4px;border:1px solid #fde68a;text-align:right'>5</td><td style='padding:2px 4px;border:1px solid #fde68a;text-align:right'>25</td></tr>"
+    +"<tr><td style='padding:2px 4px;border:1px solid #fde68a'>水果</td><td style='padding:2px 4px;border:1px solid #fde68a;text-align:right'>0</td><td style='padding:2px 4px;border:1px solid #fde68a;text-align:right'>0</td><td style='padding:2px 4px;border:1px solid #fde68a;text-align:right'>15</td><td style='padding:2px 4px;border:1px solid #fde68a;text-align:right'>60</td></tr>"
+    +"<tr><td style='padding:2px 4px;border:1px solid #fde68a'>乳品（全脂）</td><td style='padding:2px 4px;border:1px solid #fde68a;text-align:right'>8</td><td style='padding:2px 4px;border:1px solid #fde68a;text-align:right'>8</td><td style='padding:2px 4px;border:1px solid #fde68a;text-align:right'>12</td><td style='padding:2px 4px;border:1px solid #fde68a;text-align:right'>150</td></tr>"
+    +"<tr><td style='padding:2px 4px;border:1px solid #fde68a'>油脂與堅果</td><td style='padding:2px 4px;border:1px solid #fde68a;text-align:right'>0</td><td style='padding:2px 4px;border:1px solid #fde68a;text-align:right'>5</td><td style='padding:2px 4px;border:1px solid #fde68a;text-align:right'>0</td><td style='padding:2px 4px;border:1px solid #fde68a;text-align:right'>45</td></tr>"
+    +"</table>"
+    +"<b>分配策略：</b>先卡蛋白質 → 用肉魚蛋豆份數湊蛋白質目標 → 用全穀和水果湊醣類 → 用油脂調整總熱量<br>"
+    +"CKD 患者可用低蛋白澱粉（冬粉、米粉、粄條）取代一般澱粉，省下蛋白質配額給肉類 <span style='color:#6b7280;font-size:11px'>[5]</span>"
+    +"</div>"
+    // 80-120%
+    +"<div style='background:#f0f9ff;border-left:3px solid #3b82f6;padding:8px 12px;margin-bottom:10px;border-radius:0 8px 8px 0'>"
+    +"<b style='color:#1e40af'>📏 80%–120% 達成率</b> — 飲食評估實務判定標準，考量 24hr recall ±10–20% 測量誤差及日間變異"
+    +"</div>"
+    // 參考文獻
+    +"<div style='border-top:1px solid #e2e8f0;padding-top:8px;margin-top:6px;color:#64748b;font-size:11px'>"
+    +"<b>參考文獻</b><br>"
+    +"[1] Ikizler TA, et al. KDOQI Clinical Practice Guideline for Nutrition in CKD: 2020 Update. <i>Am J Kidney Dis.</i> 2020;76(3 Suppl 1):S1-S107.<br>"
+    +"[2] 調整體重校正因子 0.25（營養評估）：Abernathy's Surgical Secrets, 6th Ed; ClinCalc.com — IBW + 0.25×(ABW−IBW) for nutritional estimation.<br>"
+    +"[3] Lambert K, et al. Commentary on the 2020 update of the KDOQI guideline. <i>Nephrology.</i> 2022;27(6):489-497. — 確認蛋白質建議基準為 ideal body weight.<br>"
+    +"[4] 衛生福利部國民健康署。第九版國人膳食營養素參考攝取量（草案）。— IBW = 22×身高²；AMDR 脂肪 20–30%、醣類 50–65%、蛋白質 RDA 1.1 g/kg。<br>"
+    +"[5] 台灣食物代換表（六大類食物每份營養素含量）。衛生福利部食品藥物管理署。"
+    +"</div>";
+  refDetails.appendChild(refBody);
+  cdiet.appendChild(refDetails);
+  // === 參考文獻區塊結束 ===
   cdiet.appendChild(mkSub("細項份數分配（與營養師醫院系統一致）","orange"));
   var dpTbl=document.createElement("table");dpTbl.style.cssText="width:100%;border-collapse:collapse;font-size:13px";
   var dpThead=document.createElement("tr");
@@ -947,12 +1027,24 @@ function buildForm(){
   }
   function dpRecalc(){
     try{
-      var bwv=parseFloat(F.weight)||0,stgv=F.ckdStage||"";
+      var bwv=parseFloat(F.weight)||0,htv=parseFloat(F.height)||0,stgv=F.ckdStage||"";
+      var bmiV=(bwv>0&&htv>0)?bwv/((htv/100)*(htv/100)):0;
+      // IBW = 22 × 身高(m)²（台灣標準）
+      var ibwV=(htv>0)?22*((htv/100)*(htv/100)):0;
+      // 計算用體重：BMI正常用實際，BMI≥24用調整體重，BMI<18.5用實際
+      var calcBW=bwv;
+      var bwLabel="實際體重";
+      if(bmiV>=24&&ibwV>0){calcBW=Math.round((ibwV+0.25*(bwv-ibwV))*10)/10;bwLabel="調整體重"}
       var ib=document.getElementById("dpInfoBar");
       if(ib){
-        var ih="<b>個案資訊：</b> 體重 "+(bwv||"—")+" kg · CKD "+(stgv||"—");
-        if(bwv>0&&stgv){var pr=dpGetProRef(stgv,bwv);ih+=" · 蛋白質建議 "+pr[0]+"~"+pr[1]+"g · 熱量建議 "+Math.round(bwv*25)+"~"+Math.round(bwv*35)+" kcal"}
-        if(!bwv||!stgv)ih+="<br>⚠️ 請先在基本資料填寫體重與CKD分期";
+        var ih="<b>個案資訊：</b> 體重 "+(bwv||"—")+" kg";
+        if(ibwV>0)ih+=" · IBW "+ibwV.toFixed(1)+" kg";
+        if(bmiV>0)ih+=" · BMI "+bmiV.toFixed(1);
+        if(bmiV>=24&&calcBW!==bwv)ih+=" · <b style='color:#dc2626'>計算用："+calcBW+" kg（調整體重）</b>";
+        ih+=" · CKD "+(stgv||"—");
+        if(calcBW>0&&stgv){var pr=dpGetProRef(stgv,calcBW);ih+=" · 蛋白質建議 "+pr[0]+"~"+pr[1]+"g <span style='color:#b45309;font-size:11px'>(KDOQI 2020, 基準"+(bmiV>=24?"調整":"")+"體重)</span> · 熱量建議 "+Math.round(calcBW*25)+"~"+Math.round(calcBW*35)+" kcal <span style='color:#b45309;font-size:11px'>(KDOQI 2020)</span>"}
+        if(!bwv||!stgv)ih+="<br>⚠️ 請先在基本資料填寫體重、身高與CKD分期";
+        else if(!htv)ih+="<br>⚠️ 請先在基本資料填寫身高，以計算 IBW";
         ib.innerHTML=ih;
       }
       DP_FOODS.forEach(function(cat){cat.items.forEach(function(food){
@@ -973,14 +1065,14 @@ function buildForm(){
       var gPro=elPro?parseFloat(elPro.value)||0:0;
       var gFat=elFat?parseFloat(elFat.value)||0:0;
       var gCho=elCho?parseFloat(elCho.value)||0:0;
-      if(bwv>0&&stgv){
-        var prR=dpGetProRef(stgv,bwv);
-        var hP=document.getElementById("dpGoalHint_pro");if(hP)hP.textContent="CKD "+stgv+" 建議 "+prR[0]+"~"+prR[1]+"g";
-        var hK=document.getElementById("dpGoalHint_cal");if(hK)hK.textContent="建議 "+Math.round(bwv*25)+"~"+Math.round(bwv*35)+" kcal";
+      if(calcBW>0&&stgv){
+        var prR=dpGetProRef(stgv,calcBW);
+        var hP=document.getElementById("dpGoalHint_pro");if(hP)hP.innerHTML="CKD "+stgv+" 建議 "+prR[0]+"~"+prR[1]+"g"+(bmiV>=24?" <span style='color:#dc2626;font-size:10px'>(以調整體重 "+calcBW+"kg 計算)</span>":"")+" <span style='color:#6b7280;font-size:10px'>(KDOQI 2020, 3.0.1–3.0.3)</span>";
+        var hK=document.getElementById("dpGoalHint_cal");if(hK)hK.innerHTML="建議 "+Math.round(calcBW*25)+"~"+Math.round(calcBW*35)+" kcal"+(bmiV>=24?" <span style='color:#dc2626;font-size:10px'>(以調整體重計算)</span>":"")+" <span style='color:#6b7280;font-size:10px'>(KDOQI 2020, 3.1.1)</span>";
       }
       if(gCal>0){
-        var hF=document.getElementById("dpGoalHint_fat");if(hF)hF.textContent="建議佔 20~30% = "+Math.round(gCal*0.2/9)+"~"+Math.round(gCal*0.3/9)+"g";
-        var hC=document.getElementById("dpGoalHint_cho");if(hC)hC.textContent="建議佔 50~60% = "+Math.round(gCal*0.5/4)+"~"+Math.round(gCal*0.6/4)+"g";
+        var hF=document.getElementById("dpGoalHint_fat");if(hF)hF.innerHTML="建議佔 20~30% = "+Math.round(gCal*0.2/9)+"~"+Math.round(gCal*0.3/9)+"g <span style='color:#6b7280;font-size:10px'>(台灣第九版DRIs, AMDR)</span>";
+        var hC=document.getElementById("dpGoalHint_cho");if(hC)hC.innerHTML="建議佔 50~60% = "+Math.round(gCal*0.5/4)+"~"+Math.round(gCal*0.6/4)+"g <span style='color:#6b7280;font-size:10px'>(台灣第九版DRIs, AMDR 50–65%)</span>";
       }
       var hasP=tots.kcal>0,hasG=gCal>0;
       var comp=document.getElementById("dpCompare");
@@ -1010,9 +1102,9 @@ function buildForm(){
         if(gPro>0&&gFat>0&&gCho>0&&gCal>0&&Math.abs(kcChk-gCal)/gCal>0.05)alerts.push("⚠️ 三大營養素回推 "+Math.round(kcChk)+" kcal ≠ 熱量目標 "+gCal+" kcal");
       }
       if(bwv>0&&stgv){
-        var prC=dpGetProRef(stgv,bwv);var pv=hasP?tots.p:(gPro||0);
-        if(pv>0&&(pv<prC[0]||pv>prC[1]))alerts.push("⚠️ 蛋白質 "+pv.toFixed(1)+"g 超出 CKD "+stgv+" 建議 "+prC[0]+"~"+prC[1]+"g");
-        var kv=hasP?tots.kcal:(gCal||0);var kLo=Math.round(bwv*25),kHi=Math.round(bwv*35);
+        var prC=dpGetProRef(stgv,calcBW);var pv=hasP?tots.p:(gPro||0);
+        if(pv>0&&(pv<prC[0]||pv>prC[1]))alerts.push("⚠️ 蛋白質 "+pv.toFixed(1)+"g 超出 CKD "+stgv+" 建議 "+prC[0]+"~"+prC[1]+"g"+(bmiV>=24?"（以調整體重 "+calcBW+"kg 計算）":""));
+        var kv=hasP?tots.kcal:(gCal||0);var kLo=Math.round(calcBW*25),kHi=Math.round(calcBW*35);
         if(kv>0&&(kv<kLo||kv>kHi))alerts.push("⚠️ 熱量 "+Math.round(kv)+" kcal 超出建議 "+kLo+"~"+kHi+" kcal");
       }
       var ad=document.getElementById("dpAlert");
@@ -1120,7 +1212,7 @@ function updatePatientBar(){const pb=document.getElementById("patientBar");if(do
   const info=document.createElement("div");
   const nm=document.createElement("span");nm.className="pb-name";nm.textContent=(F.subjectId||"新個案")+(F.name?" "+F.name:"");info.appendChild(nm);
   const det=document.createElement("div");det.className="pb-info";
-  const parts=[];if(F.chartNo)parts.push("病歷:"+F.chartNo);if(F.ckdStage)parts.push("CKD "+F.ckdStage);if(F.dm==="有")parts.push("DM");if(F.age)parts.push(F.age+"歲");const wk=calcWeek(F.preDate);if(wk)parts.push(wk);
+  const parts=[];if(F.chartNo)parts.push("病歷:"+F.chartNo);if(F.phone)parts.push("📱"+F.phone);if(F.ckdStage)parts.push("CKD "+F.ckdStage);if(F.dm==="有")parts.push("DM");if(F.age)parts.push(F.age+"歲");const wk=calcWeek(F.preDate);if(wk)parts.push(wk);
   det.textContent=parts.join(" · ");info.appendChild(det);pb.appendChild(info);
   const btns=document.createElement("div");btns.style.cssText="display:flex;gap:6px";
   const save=document.createElement("button");save.className="pb-back";save.style.background="rgba(45,134,89,.8)";save.textContent="💾 儲存";save.addEventListener("click",doSave);btns.appendChild(save);
@@ -1226,17 +1318,20 @@ function showList(){
   const sI=document.createElement("input");sI.type="text";sI.placeholder="🔍 搜尋編號或姓名...";sI.style.cssText="width:280px;padding:10px 16px;border:1.5px solid var(--border);border-radius:24px;font-size:13px;font-family:inherit;background:var(--card);text-align:center";sR.appendChild(sI);area.appendChild(sR);
   const wrap=document.createElement("div");wrap.style.overflowX="auto";
   const tbl=document.createElement("table");tbl.className="list-table";
-  const thead=document.createElement("tr");["#","週次","編號","姓名","病歷號","收案日期","CKD","eGFR","Alb","SGA","後eGFR","後SGA","SUS","操作"].forEach(h=>{const th=document.createElement("th");th.textContent=h;thead.appendChild(th)});tbl.appendChild(thead);
-  sortedIdxs.forEach((ri,dispIdx)=>{const r=recs[ri];const tr=document.createElement("tr");[dispIdx+1,calcWeek(r.preDate),r.subjectId,r.name,r.chartNo,r.preDate,r.ckdStage,r.preEgfr,r.preAlb,r.sgaRating,r.postEgfr,r.postSgaRating,r.susScore].forEach(v=>{const td=document.createElement("td");td.textContent=v||"—";tr.appendChild(td)});
+  const thead=document.createElement("tr");["#","週次","編號","姓名","電話","病歷號","收案日期","後測預定","CKD","eGFR","Alb","SGA","後eGFR","後SGA","SUS","操作"].forEach(h=>{const th=document.createElement("th");th.textContent=h;thead.appendChild(th)});tbl.appendChild(thead);
+  sortedIdxs.forEach((ri,dispIdx)=>{const r=recs[ri];const tr=document.createElement("tr");
+    // 計算後測預定日期（預設收案日期+12週）
+    let postPlan="—";if(r.postDate){postPlan=r.postDate}else if(r.preDate){const pd=new Date(r.preDate);pd.setDate(pd.getDate()+84);postPlan=pd.toISOString().slice(0,10)}
+    [dispIdx+1,calcWeek(r.preDate),r.subjectId,r.name,r.phone,r.chartNo,r.preDate,postPlan,r.ckdStage,r.preEgfr,r.preAlb,r.sgaRating,r.postEgfr,r.postSgaRating,r.susScore].forEach(v=>{const td=document.createElement("td");td.textContent=v||"—";tr.appendChild(td)});
     const td=document.createElement("td");const eb=document.createElement("button");eb.className="act-btn";eb.textContent="編輯";eb.addEventListener("click",()=>{F={...recs[ri]};editIdx=ri;enterForm()});
     const db=document.createElement("button");db.className="act-btn";db.style.marginLeft="4px";db.textContent="刪除";db.addEventListener("click",()=>{if(confirm("確定刪除 "+r.subjectId+"？\n⚠️ 本機和雲端都會刪除")){const delId=r.subjectId;recs.splice(ri,1);persist("刪除 "+delId);cloudDelete(delId);showList()}});td.appendChild(eb);td.appendChild(db);tr.appendChild(td);tbl.appendChild(tr)});
   wrap.appendChild(tbl);area.appendChild(wrap);
-  sI.addEventListener("input",()=>{const q=sI.value.toLowerCase().trim();tbl.querySelectorAll("tr").forEach((tr,i)=>{if(i===0)return;const t=(tr.children[2]?.textContent||"")+(tr.children[3]?.textContent||"")+(tr.children[4]?.textContent||"");tr.style.display=t.toLowerCase().includes(q)?"":"none"})});
+  sI.addEventListener("input",()=>{const q=sI.value.toLowerCase().trim();tbl.querySelectorAll("tr").forEach((tr,i)=>{if(i===0)return;const t=(tr.children[2]?.textContent||"")+(tr.children[3]?.textContent||"")+(tr.children[4]?.textContent||"")+(tr.children[5]?.textContent||"");tr.style.display=t.toLowerCase().includes(q)?"":"none"})});
 }
 function enterForm(){document.getElementById("listArea").className="hidden";document.getElementById("formArea").className="";buildForm();switchTab("basic");updateTabbar();updatePatientBar()}
 function showForm(){enterForm()}
 function buildColMap(){
-  const COL_MAP={subjectId:"受試者編號",chartNo:"病歷號",clinicDietitian:"門診營養師",name:"姓名",birthday:"生日",age:"年齡",sex:"性別",height:"身高cm",weight:"體重kg",bmi:"BMI",activity:"活動量",ckdStage:"CKD分期",dm:"DM",htn:"HTN",hyperlipidemia:"高血脂",comorbidOther:"其他共病",assessor:"評估者",
+  const COL_MAP={subjectId:"受試者編號",chartNo:"病歷號",clinicDietitian:"門診營養師",name:"姓名",phone:"聯絡電話",birthday:"生日",age:"年齡",sex:"性別",height:"身高cm",weight:"體重kg",bmi:"BMI",activity:"活動量",ckdStage:"CKD分期",dm:"DM",htn:"HTN",hyperlipidemia:"高血脂",comorbidOther:"其他共病",assessor:"評估者",
     antihtn:"降血壓藥",antihtnName:"降血壓藥名",antiDM:"降血糖藥",antiDMName:"降血糖藥名",lipidMed:"血脂用藥",lipidMedName:"血脂藥名",kBinder:"鉀結合劑",kBinderName:"鉀結合劑藥名",pBinder:"磷結合劑",pBinderName:"磷結合劑藥名",
     suppCurOther:"其他營養品_目前",suppRecOther:"其他營養品_建議",
     preDate:"前測日期",preLabDate:"檢驗日期",postDate:"後測日期",
