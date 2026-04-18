@@ -585,24 +585,34 @@ async function cloudPull(){
     const j=await gasGet({action:"export"});
     if(j.success&&j.data){
       let updated=0,added=0,skipped=0;
+      const cloudIds=new Set(j.data.map(r=>r.subjectId).filter(Boolean));
       j.data.forEach(rec=>{
         if(!rec.subjectId)return;
         const idx=recs.findIndex(x=>x.subjectId===rec.subjectId);
         if(idx>=0){
-          // 時間戳記比對：只有雲端資料比本機新才覆蓋
           const localTime=recs[idx]._lastModified||"";
           const cloudTime=rec._lastModified||"";
           if(cloudTime&&localTime&&cloudTime<=localTime){
-            skipped++;return; // 本機較新，不覆蓋
+            skipped++;return;
           }
           Object.keys(rec).forEach(k=>{if(rec[k]!=="")recs[idx][k]=rec[k]});
           updated++;
         }
         else{const nr=newF();Object.keys(rec).forEach(k=>{nr[k]=rec[k]});recs.push(nr);added++}
       });
+      // 刪除同步：本機有但雲端沒有的個案
+      var localOnly=recs.filter(r=>r.subjectId&&!cloudIds.has(r.subjectId));
+      var deleted=0;
+      if(localOnly.length>0){
+        var names=localOnly.map(r=>(r.subjectId||"")+" "+(r.name||"")).join("\n");
+        if(confirm("以下 "+localOnly.length+" 筆個案在雲端已不存在：\n\n"+names+"\n\n是否同步刪除本機資料？\n（選「取消」則保留本機資料）")){
+          localOnly.forEach(r=>{var idx=recs.findIndex(x=>x.subjectId===r.subjectId);if(idx>=0){recs.splice(idx,1);deleted++}});
+        }
+      }
       persist("雲端拉回");
       let msg="☁️ 已從雲端拉回：更新 "+updated+" 筆，新增 "+added+" 筆";
       if(skipped>0)msg+="，跳過 "+skipped+" 筆（本機較新）";
+      if(deleted>0)msg+="，刪除 "+deleted+" 筆（雲端已移除）";
       flash(msg);showList();
     }else{flash("☁️ 拉回失敗："+(j.error||"無資料"))}
   }catch(e){flash("☁️ 拉回錯誤："+e.message)}
