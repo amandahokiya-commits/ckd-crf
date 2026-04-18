@@ -1384,7 +1384,6 @@ function exportXLSX(){if(recs.length===0)return flash("無資料可匯出");
   const mapped=recs.map(r=>{
     const o={"收案週次":calcWeek(r.preDate)};
     Object.keys(r).forEach(k=>{o[COL_MAP[k]||k]=r[k]});
-    // v11.1: 強制受試者編號為文字格式，避免 Excel 吃掉前導零
     o["受試者編號"]=String(r.subjectId||"");
     ALL_T.forEach(t=>{
       const lo=parseFloat(r["t_"+t.k+"_lo"]),hi=parseFloat(r["t_"+t.k+"_hi"]);
@@ -1392,14 +1391,61 @@ function exportXLSX(){if(recs.length===0)return flash("無資料可匯出");
     });
     return o;
   });
-  const ws=XLSX.utils.json_to_sheet(mapped);
-  // v11.1: 設定受試者編號欄為文字格式
-  const range=XLSX.utils.decode_range(ws["!ref"]||"A1");
-  for(let row=range.s.r+1;row<=range.e.r;row++){
-    const cell=ws[XLSX.utils.encode_cell({r:row,c:1})]; // 受試者編號在第2欄(B)
+  // === 摘要工作表 ===
+  var sumRows=[["個案資料完成度摘要","","","","","","","","","","匯出時間："+new Date().toLocaleString("zh-TW")],[]];
+  sumRows.push(["編號","姓名","電話","病歷號","CKD","eGFR","Alb","SGA","收案","後測預定",
+    "基本資料","生化檢驗","飲食計畫","舊目標","新目標","24hr速記","營養品","SUS","缺少項目"]);
+  var sortedR=[...recs].sort((a,b)=>(a.subjectId||"").localeCompare(b.subjectId||"",undefined,{numeric:true}));
+  sortedR.forEach(function(r){
+    // 檢查各區塊完成度
+    var chkBasic=(r.name&&r.chartNo&&r.height&&r.weight&&r.ckdStage)?"✓":"✗";
+    var chkLab=(r.preEgfr&&r.preAlb)?"✓":(r.preEgfr||r.preAlb)?"△":"✗";
+    var dpCount=0;DP_ALL_KEYS.forEach(function(k){if(r[k]&&parseFloat(r[k])>0)dpCount++});
+    var chkDP=dpCount>=3?"✓("+dpCount+"項)":dpCount>0?"△("+dpCount+"項)":"✗";
+    var oldCount=0;ALL_T.forEach(function(t){if(r["preOld_"+t.k+"_lo"])oldCount++});
+    var chkOld=oldCount>=4?"✓":"✗("+oldCount+"/"+ALL_T.length+")";
+    var newCount=0;ALL_T.forEach(function(t){if(r["t_"+t.k+"_lo"])newCount++});
+    var chkNew=newCount>=4?"✓":"✗("+newCount+"/"+ALL_T.length+")";
+    var mealCount=0;MEALS.forEach(function(m){if(r["preDiet_"+m])mealCount++});
+    var chkMeal=mealCount>=3?"✓":"✗("+mealCount+"/4)";
+    var suppCount=0;SUPPS.forEach(function(_,i){if(r["supp_cur_"+i])suppCount++});
+    var chkSupp=suppCount>0?"✓":"—";
+    var chkSUS=r.susScore?"✓("+r.susScore+")":"✗";
+    // 缺少項目
+    var missing=[];
+    if(chkBasic==="✗")missing.push("基本資料");
+    if(chkLab==="✗")missing.push("生化");
+    if(chkDP.charAt(0)==="✗")missing.push("飲食計畫");
+    if(chkOld.charAt(0)==="✗")missing.push("舊目標");
+    if(chkNew.charAt(0)==="✗")missing.push("新目標");
+    if(chkMeal.charAt(0)==="✗")missing.push("24hr速記");
+    if(chkSUS.charAt(0)==="✗")missing.push("SUS");
+    // 後測預定
+    var postPlan="";if(r.postDate){postPlan=r.postDate}else if(r.preDate){var pd=new Date(r.preDate);pd.setDate(pd.getDate()+84);postPlan=pd.toISOString().slice(0,10)}
+    sumRows.push([
+      String(r.subjectId||""),r.name||"",r.phone||"",r.chartNo||"",
+      r.ckdStage||"",r.preEgfr||"",r.preAlb||"",r.sgaRating||"",
+      r.preDate||"",postPlan,
+      chkBasic,chkLab,chkDP,chkOld,chkNew,chkMeal,chkSupp,chkSUS,
+      missing.length>0?missing.join("、"):"全部完成 ✓"
+    ]);
+  });
+  // 建立 workbook
+  var ws=XLSX.utils.json_to_sheet(mapped);
+  var range=XLSX.utils.decode_range(ws["!ref"]||"A1");
+  for(var row=range.s.r+1;row<=range.e.r;row++){
+    var cell=ws[XLSX.utils.encode_cell({r:row,c:1})];
     if(cell){cell.t="s";cell.v=String(cell.v||"")}
   }
-  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"CRF");XLSX.writeFile(wb,"CRF_營養腎隊友_"+new Date().toISOString().slice(0,10)+".xlsx");flash("✓ 已匯出 Excel")}
+  var wsSummary=XLSX.utils.aoa_to_sheet(sumRows);
+  // 摘要表欄寬
+  wsSummary["!cols"]=[{wch:8},{wch:8},{wch:14},{wch:12},{wch:5},{wch:7},{wch:5},{wch:5},{wch:10},{wch:10},{wch:7},{wch:7},{wch:12},{wch:12},{wch:12},{wch:10},{wch:7},{wch:10},{wch:20}];
+  var wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,wsSummary,"摘要");
+  XLSX.utils.book_append_sheet(wb,ws,"CRF");
+  XLSX.writeFile(wb,"CRF_營養腎隊友_"+new Date().toISOString().slice(0,10)+".xlsx");
+  flash("✓ 已匯出 Excel（含摘要工作表）")
+}
 
 // v11.1: ENHANCED importFile with trim, full-overwrite option, unknown column filter
 function importFile(e){
