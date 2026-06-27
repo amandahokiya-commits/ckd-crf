@@ -1284,6 +1284,32 @@ function showList(){
 
   area.appendChild(aR);
 
+  // v11.4: 首頁小計橫條
+  (function(){
+    const total=recs.length;
+    const hasPost=r=>[r.postEgfr,r.postAlb,r.postK,r.postP,r.postHb,r.postWeight,r.postSgaRating].some(v=>v!=null&&String(v).trim()!=="");
+    const done=recs.filter(hasPost).length;
+    const pending=total-done;
+    const used=recs.filter(r=>r.noSystem==="有使用").length;
+    const notUsed=recs.filter(r=>r.noSystem==="未使用").length;
+    const TARGET=50;
+    const bar=document.createElement("div");
+    bar.style.cssText="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:4px 0 14px";
+    const chip=(num,label,col)=>{
+      const d=document.createElement("div");
+      d.style.cssText="min-width:82px;padding:8px 14px;border-radius:12px;background:var(--card);border:1.5px solid var(--border);text-align:center;line-height:1.25";
+      const n=document.createElement("div");n.style.cssText="font-size:20px;font-weight:800;color:"+(col||"var(--blue)");n.textContent=num;
+      const l=document.createElement("div");l.style.cssText="font-size:11px;color:var(--text3);margin-top:2px";l.textContent=label;
+      d.appendChild(n);d.appendChild(l);return d;
+    };
+    bar.appendChild(chip(total+" / "+TARGET,"收案數（目標50）"));
+    bar.appendChild(chip(done,"已完成後測","#16a34a"));
+    bar.appendChild(chip(pending,"待後測","#d97706"));
+    bar.appendChild(chip(used,"有使用系統","#16a34a"));
+    bar.appendChild(chip(notUsed,"未使用系統","#6b7280"));
+    area.appendChild(bar);
+  })();
+
   // === 雲端同步面板 ===
   if(SYNC_URL){
     const cb=document.createElement("div");cb.className="cloud-bar";
@@ -1355,6 +1381,50 @@ function showList(){
     const lg=document.createElement("div");lg.style.cssText="text-align:center;font-size:11.5px;color:var(--text3);margin:0 0 8px;line-height:1.9";
     lg.innerHTML='每格＝<b>前測 → 後測</b>　顏色：<span style="color:#16a34a;font-weight:700">綠＝改善</span>　<span style="color:#dc2626;font-weight:700">紅＝惡化</span>　<span style="color:#7c7567;font-weight:700">灰＝持平／缺後測</span><br><span style="background:#f5f4f1;padding:1px 8px;border-radius:6px">灰底列＝未使用系統</span>（K、P 以下降為改善；eGFR、Alb、Hb 以上升為改善）';
     area.appendChild(lg);
+    // v11.4: 各檢驗值 上升／下降 人數小計（依系統使用分組）
+    const labs=[
+      {n:"eGFR",pre:"preEgfr",post:"postEgfr",dir:"up"},
+      {n:"Albumin",pre:"preAlb",post:"postAlb",dir:"up"},
+      {n:"鉀 K",pre:"preK",post:"postK",dir:"down"},
+      {n:"磷 P",pre:"preP",post:"postP",dir:"down"},
+      {n:"Hb",pre:"preHb",post:"postHb",dir:"up"},
+      {n:"體重",pre:"weight",post:"postWeight",dir:"none"}
+    ];
+    const gUsed=recs.filter(r=>r.noSystem==="有使用");
+    const gNot=recs.filter(r=>r.noSystem==="未使用");
+    const gUn=recs.filter(r=>r.noSystem!=="有使用"&&r.noSystem!=="未使用").length;
+    const cntLab=(sub,L)=>{let up=0,down=0,flat=0;sub.forEach(r=>{if(r[L.post]==null||String(r[L.post]).trim()==="")return;const a=parseFloat(r[L.pre]),b=parseFloat(r[L.post]);if(isNaN(a)||isNaN(b))return;const d=b-a;if(d>0)up++;else if(d<0)down++;else flat++});return{up,down,flat}};
+    const gd="#16a34a",bd="#dc2626";
+    const stat=document.createElement("table");stat.style.cssText="margin:0 auto 10px;border-collapse:collapse;font-size:12px";
+    const gh=document.createElement("tr");
+    const mkGh=(txt,span,bg)=>{const th=document.createElement("th");th.textContent=txt;th.colSpan=span;th.style.cssText="padding:5px 10px;background:"+bg+";color:#fff;font-size:11.5px;font-weight:700;white-space:nowrap;border-left:2px solid #fff";return th};
+    gh.appendChild(mkGh("檢驗值",1,"var(--blue)"));
+    gh.appendChild(mkGh("🟢 有使用系統 (n="+gUsed.length+")",3,"#16a34a"));
+    gh.appendChild(mkGh("⚪ 未使用系統 (n="+gNot.length+")",3,"#6b7280"));
+    stat.appendChild(gh);
+    const sh=document.createElement("tr");
+    ["","↑","↓","持平","↑","↓","持平"].forEach((t,i)=>{const th=document.createElement("th");th.textContent=t;th.style.cssText="padding:3px 12px;background:var(--blue);color:#fff;font-size:11px;font-weight:600"+((i===1||i===4)?";border-left:2px solid #fff":"");sh.appendChild(th)});
+    stat.appendChild(sh);
+    labs.forEach(L=>{
+      const u=cntLab(gUsed,L),v=cntLab(gNot,L);
+      const upCol=L.dir==="up"?gd:L.dir==="down"?bd:"var(--text)";
+      const dnCol=L.dir==="down"?gd:L.dir==="up"?bd:"var(--text)";
+      const tr=document.createElement("tr");
+      [[L.n,"var(--text)",1,"left",false],
+       [u.up,upCol,1,"center",true],[u.down,dnCol,1,"center",false],[u.flat,"var(--text3)",0,"center",false],
+       [v.up,upCol,1,"center",true],[v.down,dnCol,1,"center",false],[v.flat,"var(--text3)",0,"center",false]
+      ].forEach(c=>{const td=document.createElement("td");td.textContent=c[0];td.style.cssText="padding:4px 12px;text-align:"+c[3]+";border-bottom:1px solid var(--border);color:"+c[1]+(c[2]?";font-weight:700":"")+(c[4]?";border-left:2px solid var(--border)":"");tr.appendChild(td)});
+      stat.appendChild(tr);
+    });
+    area.appendChild(stat);
+    const rk={A:0,B:1,C:2};
+    const cntSga=(sub)=>{let i=0,w=0,s=0;sub.forEach(r=>{if(r.postSgaRating==null||String(r.postSgaRating).trim()==="")return;const a=rk[String(r.sgaRating).toUpperCase()],b=rk[String(r.postSgaRating).toUpperCase()];if(a==null||b==null)return;if(b<a)i++;else if(b>a)w++;else s++});return{i,w,s}};
+    const su=cntSga(gUsed),sv=cntSga(gNot);
+    const sgaLine=document.createElement("div");sgaLine.style.cssText="text-align:center;font-size:12px;color:var(--text3);margin:0 0 6px;line-height:1.9";
+    sgaLine.innerHTML='<b>SGA 營養評估</b>　🟢有使用：<span style="color:#16a34a;font-weight:700">改善'+su.i+'</span>/持平'+su.s+'/<span style="color:#dc2626;font-weight:700">惡化'+su.w+'</span>　⚪未使用：<span style="color:#16a34a;font-weight:700">改善'+sv.i+'</span>/持平'+sv.s+'/<span style="color:#dc2626;font-weight:700">惡化'+sv.w+'</span>';
+    area.appendChild(sgaLine);
+    if(gUn>0){const note=document.createElement("div");note.style.cssText="text-align:center;font-size:11px;color:#d97706;margin:0 0 12px";note.textContent="⚠ 另有 "+gUn+" 筆尚未標記系統使用情形，未列入上方分組";area.appendChild(note)}
+    else{const sp=document.createElement("div");sp.style.cssText="margin-bottom:12px";area.appendChild(sp)}
   }
   const wrap=document.createElement("div");wrap.style.cssText="overflow-x:auto;position:relative;left:50%;transform:translateX(-50%);width:96vw;max-width:1180px";
   const tbl=document.createElement("table");tbl.className="list-table";
