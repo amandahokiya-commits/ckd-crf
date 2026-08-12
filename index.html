@@ -154,7 +154,7 @@ textarea{resize:vertical;min-height:60px}
 <div class="app">
 <div class="header">
   <h1>營養腎隊友 個案紀錄表</h1>
-  <p>Case Report Form (CRF) v11.4 ｜ 2026.06.25 ｜ <span id="syncBadge" class="sync-status local">💾 本機儲存</span></p>
+  <p>Case Report Form (CRF) v11.5 ｜ 2026.08.12 ｜ <span id="syncBadge" class="sync-status local">💾 本機儲存</span></p>
 </div>
 <div class="tabs" id="tabbar"></div>
 <div id="patientBar" class="hidden"></div>
@@ -1270,6 +1270,19 @@ function doSave(){
   else{recs.push({...F});editIdx=recs.length-1}
   persist("儲存 "+F.subjectId);cloudSave({...F});flash("✓ 已儲存 "+F.subjectId);updateTabbar();updatePatientBar();
 }
+// v11.5: SUS 分數色碼（Bangor 常模：≥80.3 優秀 / ≥68 可接受 / <68 需改善）
+function susColor(v){const n=parseFloat(v);if(isNaN(n))return "#a8a08f";return n>=80.3?"#16a34a":n>=68?"#d97706":"#dc2626"}
+function susGrade(v){const n=parseFloat(v);if(isNaN(n))return "";return n>=80.3?"A":n>=68?"C":"F"}
+function susCell(v){
+  const td=document.createElement("td");td.style.whiteSpace="nowrap";
+  const n=parseFloat(v);
+  if(isNaN(n)){td.textContent="—";td.style.color="#cbd5e1";return td}
+  const s=document.createElement("span");s.textContent=n.toFixed(1);
+  s.style.cssText="font-weight:700;color:"+susColor(n);td.appendChild(s);
+  const g=document.createElement("span");g.textContent=" "+susGrade(n);
+  g.style.cssText="font-size:10.5px;color:var(--text3);margin-left:2px";td.appendChild(g);
+  return td;
+}
 function showList(){
   document.getElementById("formArea").className="hidden";document.getElementById("patientBar").className="hidden";const area=document.getElementById("listArea");area.className="";area.innerHTML="";updateTabbar();
   const h=document.createElement("h2");h.style.cssText="text-align:center;color:var(--blue);margin:16px 0 8px;font-size:18px";h.textContent="個案總表 ("+recs.length+"筆)";area.appendChild(h);
@@ -1307,6 +1320,10 @@ function showList(){
     bar.appendChild(chip(pending,"待後測","#d97706"));
     bar.appendChild(chip(used,"有使用系統","#16a34a"));
     bar.appendChild(chip(notUsed,"未使用系統","#6b7280"));
+    // v11.5: SUS 平均分數
+    const susVals=recs.map(r=>parseFloat(r.susScore)).filter(v=>!isNaN(v));
+    const susAvg=susVals.length?(susVals.reduce((a,b)=>a+b,0)/susVals.length).toFixed(1):"—";
+    bar.appendChild(chip(susAvg,"SUS 平均（"+susVals.length+"份）",susVals.length?susColor(susAvg):"var(--text3)"));
     area.appendChild(bar);
   })();
 
@@ -1417,12 +1434,19 @@ function showList(){
       stat.appendChild(tr);
     });
     area.appendChild(stat);
-    const rk={A:0,B:1,C:2};
-    const cntSga=(sub)=>{let i=0,w=0,s=0;sub.forEach(r=>{if(r.postSgaRating==null||String(r.postSgaRating).trim()==="")return;const a=rk[String(r.sgaRating).toUpperCase()],b=rk[String(r.postSgaRating).toUpperCase()];if(a==null||b==null)return;if(b<a)i++;else if(b>a)w++;else s++});return{i,w,s}};
-    const su=cntSga(gUsed),sv=cntSga(gNot);
-    const sgaLine=document.createElement("div");sgaLine.style.cssText="text-align:center;font-size:12px;color:var(--text3);margin:0 0 6px;line-height:1.9";
-    sgaLine.innerHTML='<b>SGA 營養評估</b>　🟢有使用：<span style="color:#16a34a;font-weight:700">改善'+su.i+'</span>/持平'+su.s+'/<span style="color:#dc2626;font-weight:700">惡化'+su.w+'</span>　⚪未使用：<span style="color:#16a34a;font-weight:700">改善'+sv.i+'</span>/持平'+sv.s+'/<span style="color:#dc2626;font-weight:700">惡化'+sv.w+'</span>';
-    area.appendChild(sgaLine);
+    // v11.5: SUS 系統使用性小計（取代原 SGA 小計）
+    const susAll=recs.map(r=>parseFloat(r.susScore)).filter(v=>!isNaN(v));
+    const susLine=document.createElement("div");susLine.style.cssText="text-align:center;font-size:12px;color:var(--text3);margin:0 0 6px;line-height:1.9";
+    if(susAll.length===0){susLine.innerHTML='<b>SUS 系統使用性</b>　尚無已填量表';}
+    else{
+      const mean=susAll.reduce((a,b)=>a+b,0)/susAll.length;
+      const sd=susAll.length>1?Math.sqrt(susAll.reduce((a,b)=>a+Math.pow(b-mean,2),0)/(susAll.length-1)):0;
+      const nA=susAll.filter(v=>v>=80.3).length,nC=susAll.filter(v=>v>=68&&v<80.3).length,nF=susAll.filter(v=>v<68).length;
+      susLine.innerHTML='<b>SUS 系統使用性</b>（n='+susAll.length+'）　平均 <span style="color:'+susColor(mean)+';font-weight:700">'+mean.toFixed(1)+'</span> ± '+sd.toFixed(1)
+        +'　<span style="color:#16a34a;font-weight:700">A 優秀 '+nA+'</span> / <span style="color:#d97706;font-weight:700">C 可接受 '+nC+'</span> / <span style="color:#dc2626;font-weight:700">F 需改善 '+nF+'</span>'
+        +'<br><span style="font-size:11px">評分基準：≥80.3 優秀｜68–80.2 可接受｜&lt;68 需改善（Bangor 常模）</span>';
+    }
+    area.appendChild(susLine);
     if(gUn>0){const note=document.createElement("div");note.style.cssText="text-align:center;font-size:11px;color:#d97706;margin:0 0 12px";note.textContent="⚠ 另有 "+gUn+" 筆尚未標記系統使用情形，未列入上方分組";area.appendChild(note)}
     else{const sp=document.createElement("div");sp.style.cssText="margin-bottom:12px";area.appendChild(sp)}
   }
@@ -1441,10 +1465,11 @@ function showList(){
 
   if(listView==="detail"){
     // ===== 原始詳細清單（與 v11.3 完全一致，未更動）=====
-    const thead=document.createElement("tr");["#","W","編號","姓名","電話","病歷號","收案","後測","CKD","eGFR","Alb","SGA",""].forEach(h=>{const th=document.createElement("th");th.textContent=h;thead.appendChild(th)});tbl.appendChild(thead);
+    const thead=document.createElement("tr");["#","W","編號","姓名","電話","病歷號","收案","後測","CKD","eGFR","Alb","SUS",""].forEach(h=>{const th=document.createElement("th");th.textContent=h;thead.appendChild(th)});tbl.appendChild(thead);
     sortedIdxs.forEach((ri,dispIdx)=>{const r=recs[ri];const tr=document.createElement("tr");
       let postPlan="—";if(r.postDate){postPlan=shortD(r.postDate)}else if(r.preDate){const pd=new Date(r.preDate);pd.setDate(pd.getDate()+84);postPlan=shortD(pd.toISOString().slice(0,10))}
-      [dispIdx+1,calcWeek(r.preDate),r.subjectId,r.name,r.phone,r.chartNo,shortD(r.preDate),postPlan,r.ckdStage,r.preEgfr,r.preAlb,r.sgaRating].forEach(v=>{const td=document.createElement("td");td.textContent=v||"—";tr.appendChild(td)});
+      [dispIdx+1,calcWeek(r.preDate),r.subjectId,r.name,r.phone,r.chartNo,shortD(r.preDate),postPlan,r.ckdStage,r.preEgfr,r.preAlb].forEach(v=>{const td=document.createElement("td");td.textContent=v||"—";tr.appendChild(td)});
+      tr.appendChild(susCell(r.susScore));
       tr.appendChild(mkActTd(ri,r));tbl.appendChild(tr);
     });
   } else {
@@ -1464,7 +1489,7 @@ function showList(){
       }else{qs.style.color="#a8a08f"}
       td.appendChild(qs);return td;
     };
-    const thead=document.createElement("tr");["#","編號","姓名","收案","後測","系統","CKD","eGFR","Alb","K","P","Hb","體重","SGA",""].forEach(h=>{const th=document.createElement("th");th.textContent=h;thead.appendChild(th)});tbl.appendChild(thead);
+    const thead=document.createElement("tr");["#","編號","姓名","收案","後測","系統","CKD","eGFR","Alb","K","P","Hb","體重","SUS",""].forEach(h=>{const th=document.createElement("th");th.textContent=h;thead.appendChild(th)});tbl.appendChild(thead);
     sortedIdxs.forEach((ri,dispIdx)=>{const r=recs[ri];const tr=document.createElement("tr");
       if(r.noSystem==="未使用")tr.style.background="#f5f4f1";
       [dispIdx+1,r.subjectId,r.name].forEach(v=>{const td=document.createElement("td");td.textContent=v||"—";tr.appendChild(td)});
@@ -1482,7 +1507,7 @@ function showList(){
       tr.appendChild(arrowCell(r.preP,r.postP,"down"));
       tr.appendChild(arrowCell(r.preHb,r.postHb,"up"));
       tr.appendChild(arrowCell(r.weight,r.postWeight,"none"));
-      tr.appendChild(arrowCell(r.sgaRating,r.postSgaRating,"sga"));
+      tr.appendChild(susCell(r.susScore));
       tr.appendChild(mkActTd(ri,r));tbl.appendChild(tr);
     });
   }
@@ -1538,7 +1563,7 @@ function exportXLSX(){if(recs.length===0)return flash("無資料可匯出");
   });
   // === 摘要工作表 ===
   var sumRows=[["個案資料完成度摘要","","","","","","","","","","匯出時間："+new Date().toLocaleString("zh-TW")],[]];
-  sumRows.push(["編號","姓名","電話","病歷號","CKD","eGFR","Alb","SGA","收案","後測預定",
+  sumRows.push(["編號","姓名","電話","病歷號","CKD","eGFR","Alb","SUS分數","收案","後測預定",
     "基本資料","生化檢驗","飲食計畫","舊目標","新目標","24hr速記","營養品","SUS","缺少項目"]);
   var sortedR=[...recs].sort((a,b)=>(a.subjectId||"").localeCompare(b.subjectId||"",undefined,{numeric:true}));
   sortedR.forEach(function(r){
@@ -1569,7 +1594,7 @@ function exportXLSX(){if(recs.length===0)return flash("無資料可匯出");
     var postPlan="";if(r.postDate){postPlan=r.postDate}else if(r.preDate){var pd=new Date(r.preDate);pd.setDate(pd.getDate()+84);postPlan=pd.toISOString().slice(0,10)}
     sumRows.push([
       String(r.subjectId||""),r.name||"",r.phone||"",r.chartNo||"",
-      r.ckdStage||"",r.preEgfr||"",r.preAlb||"",r.sgaRating||"",
+      r.ckdStage||"",r.preEgfr||"",r.preAlb||"",r.susScore||"",
       r.preDate||"",postPlan,
       chkBasic,chkLab,chkDP,chkOld,chkNew,chkMeal,chkSupp,chkSUS,
       missing.length>0?missing.join("、"):"全部完成 ✓"
