@@ -154,7 +154,7 @@ textarea{resize:vertical;min-height:60px}
 <div class="app">
 <div class="header">
   <h1>營養腎隊友 個案紀錄表</h1>
-  <p>Case Report Form (CRF) v11.5 ｜ 2026.08.12 ｜ <span id="syncBadge" class="sync-status local">💾 本機儲存</span></p>
+  <p>Case Report Form (CRF) v11.7 ｜ 2026.09.02 ｜ <span id="syncBadge" class="sync-status local">💾 本機儲存</span></p>
 </div>
 <div class="tabs" id="tabbar"></div>
 <div id="patientBar" class="hidden"></div>
@@ -359,11 +359,22 @@ const TABS=[{id:"basic",label:"基本資料",cls:""},{id:"diet",label:"飲食計
 const SGA_B=[{id:"sgaFatLoss",l:"皮下脂肪喪失（三頭肌、胸部）"},{id:"sgaMuscleLoss",l:"肌肉耗損（四頭肌、三角肌）"},{id:"sgaEdemaAnkle",l:"腳踝水腫"},{id:"sgaEdemaSacral",l:"薦骨水腫"},{id:"sgaAscites",l:"腹水"}];
 const SUS_Q=["我想我會經常使用這個系統","我認為這個系統過於複雜","我認為這個系統容易使用","我需要技術人員的幫助才能使用這個系統","我發現系統的各項功能整合良好","我覺得這個系統有太多不一致的地方","我認為大多數人能很快學會使用這個系統","我覺得使用這個系統很繁瑣","我對使用這個系統很有信心","我需要學習很多東西才能使用這個系統"];
 const MEALS=["早餐","午餐","晚餐","點心"];
-const SUPPS=["亞培腎補納","益力壯慎補","桂格完膳腎臟病配方","力增 腎臟病未洗腎配方","百仕可慎護","益力勝慎前","倍力速 慢性腎臟病專用","三多補体康低蛋白","三多補体素低蛋白","偉力健 LPN","愛斯康腎利","易能充","其他"];
+const SUPPS=["亞培勝補納","益力壯慎補","桂格完膳腎臟病配方","力增 腎臟病未洗腎配方","百仕可慎護","益力勝慎前","倍力速 慢性腎臟病專用","三多補体康低蛋白","三多補体素低蛋白","偉力健 LPN","愛斯康腎利","易能充","其他"];
 const T_MACRO=[{k:"cal",e:"🔥",l:"熱量",u:"kcal"},{k:"pro",e:"🥩",l:"蛋白質",u:"g"},{k:"fat",e:"🍖",l:"脂肪",u:"g"},{k:"cho",e:"🍚",l:"碳水化合物",u:"g"},{k:"water",e:"💧",l:"飲水量",u:"mL"}];
 const T_CKD=[{k:"na",e:"🧂",l:"鈉",u:"mg"},{k:"p",e:"🧪",l:"磷",u:"mg"},{k:"k",e:"🍌",l:"鉀",u:"mg"}];
 const T_SIX=[{k:"grain",e:"🌾",l:"全穀雜糧",u:"份"},{k:"meat",e:"🍖",l:"豆魚蛋肉",u:"份"},{k:"veg",e:"🥦",l:"蔬菜類",u:"份"},{k:"fruit",e:"🍎",l:"水果類",u:"份"},{k:"dairy",e:"🥛",l:"乳品類",u:"份"},{k:"oil",e:"🥜",l:"油脂堅果",u:"份"}];
 const ALL_T=[...T_MACRO,...T_CKD,...T_SIX];
+
+// v11.7: 後測生化檢驗項目（每項可獨立記錄檢驗日期與有無抽血）
+const POST_LABS=[
+  {k:"postEgfr",l:"eGFR",u:"mL/min/1.73m²"},
+  {k:"postAlb",l:"Albumin",u:"g/dL"},
+  {k:"postK",l:"K（鉀）",u:"mEq/L"},
+  {k:"postP",l:"P（磷）",u:"mg/dL"},
+  {k:"postHb",l:"Hb（血色素）",u:"g/dL"},
+  {k:"postBun",l:"BUN（尿素氮）",u:"mg/dL"},
+  {k:"postCr",l:"Cr（肌酸酐）",u:"mg/dL"}
+];
 
 const WEEK_START=new Date("2026-03-25");
 const calcWeek=(dateStr)=>{if(!dateStr)return"";const d=new Date(dateStr);const diff=Math.floor((d-WEEK_START)/(7*24*60*60*1000));return"W"+(Math.max(1,diff+1))};
@@ -375,7 +386,7 @@ const DP_FOODS=[
 {cat:"全穀雜糧類",items:[{n:"主食(米類)",k:"dp_grain_rice",p:1.5,c:15,f:0,kcal:66},{n:"主食(麥類)",k:"dp_grain_wheat",p:2.5,c:15,f:0,kcal:70},{n:"主食(低氮)",k:"dp_grain_ln",p:0,c:15,f:0,kcal:60}]},
 {cat:"豆魚蛋肉類",items:[{n:"低脂肉",k:"dp_meat_lo",p:7,c:0,f:3,kcal:55},{n:"中脂肉",k:"dp_meat_mid",p:7,c:0,f:5,kcal:73},{n:"高脂肉",k:"dp_meat_hi",p:7,c:0,f:10,kcal:118}]},
 {cat:"油脂與堅果種子類",items:[{n:"油脂",k:"dp_oil",p:0,c:0,f:5,kcal:45}]},
-{cat:"營養補充品",items:[{n:"易能充",k:"dp_supp_ec",p:0.85,c:30.7,f:8.2,kcal:200},{n:"三多低蛋白",k:"dp_supp_sd",p:3.9,c:31.3,f:11.1,kcal:240.7},{n:"腎補納",k:"dp_supp_sb",p:0,c:0,f:0,kcal:0}]}
+{cat:"營養補充品",items:[{n:"易能充",k:"dp_supp_ec",p:0.85,c:30.7,f:8.2,kcal:200},{n:"三多低蛋白",k:"dp_supp_sd",p:3.9,c:31.3,f:11.1,kcal:240.7},{n:"勝補納",k:"dp_supp_sb",p:10.6,c:46.4,f:22.7,kcal:425}]}
 ];
 const DP_ALL_KEYS=DP_FOODS.flatMap(c=>c.items.map(i=>i.k));
 
@@ -386,7 +397,7 @@ function newF(){
     ...Object.fromEntries(SUPPS.map((_,i)=>["supp_cur_"+i,""])),suppCurOther:"",
     ...Object.fromEntries(DP_ALL_KEYS.map(k=>[k,""])),
     preDate:"",preLabDate:"",postDate:"",preUACR:"",
-    preEgfr:"",preEgfrHas:"",preAlb:"",preAlbHas:"",preK:"",preKHas:"",preP:"",prePHas:"",preHb:"",preHbHas:"",
+    preEgfr:"",preEgfrHas:"",preAlb:"",preAlbHas:"",preK:"",preKHas:"",preP:"",prePHas:"",preHb:"",preHbHas:"",preBun:"",preBunHas:"",preCr:"",preCrHas:"",
     preW6m:"",preWchange:"",preWchangePct:"",preWt2wk:"",
     preDietChange:"",preDietDuration:"",preDietType:"",
     preGI_none:"",preGI_nausea:"",preGI_vomit:"",preGI_diarrhea:"",preGI_anorexia:"",
@@ -400,7 +411,8 @@ function newF(){
     ...Object.fromEntries(ALL_T.flatMap(t=>[["t_"+t.k+"_lo",""],["t_"+t.k+"_hi",""]])),
     ...Object.fromEntries(SUPPS.map((_,i)=>["supp_rec_"+i,""])),suppRecOther:"",
     postWeight:"",postBmi:"",
-    postEgfr:"",postAlb:"",postK:"",postP:"",postHb:"",
+    postEgfr:"",postAlb:"",postK:"",postP:"",postHb:"",postBun:"",postCr:"",
+    ...Object.fromEntries(POST_LABS.flatMap(b=>[[b.k+"Has",""],[b.k+"Date",""]])),
     postW6m:"",postWchange:"",postWchangePct:"",postWt2wk:"",
     postDietChange:"",postDietDuration:"",postDietType:"",
     postGI_none:"",postGI_nausea:"",postGI_vomit:"",postGI_diarrhea:"",postGI_anorexia:"",
@@ -784,7 +796,7 @@ function buildForm(){
   c.appendChild(dR);
   const updWeekBadge=()=>{const el=document.getElementById("weekBadge");if(el)el.textContent=calcWeek(F.preDate)};
   c.appendChild(mkRow("上次檢驗日期",mkI("preLabDate",{type:"date"})));
-  const bio=[{k:"preEgfr",hk:"preEgfrHas",l:"eGFR",u:"mL/min/1.73m²"},{k:"preUACR",hk:null,l:"UACR（蛋白尿）",u:"mg/g"},{k:"preAlb",hk:"preAlbHas",l:"Albumin",u:"g/dL"},{k:"preK",hk:"preKHas",l:"K（鉀）",u:"mEq/L"},{k:"preP",hk:"prePHas",l:"P（磷）",u:"mg/dL"},{k:"preHb",hk:"preHbHas",l:"Hb（血色素）",u:"g/dL"}];
+  const bio=[{k:"preEgfr",hk:"preEgfrHas",l:"eGFR",u:"mL/min/1.73m²"},{k:"preUACR",hk:null,l:"UACR（蛋白尿）",u:"mg/g"},{k:"preAlb",hk:"preAlbHas",l:"Albumin",u:"g/dL"},{k:"preK",hk:"preKHas",l:"K（鉀）",u:"mEq/L"},{k:"preP",hk:"prePHas",l:"P（磷）",u:"mg/dL"},{k:"preHb",hk:"preHbHas",l:"Hb（血色素）",u:"g/dL"},{k:"preBun",hk:"preBunHas",l:"BUN（尿素氮）",u:"mg/dL"},{k:"preCr",hk:"preCrHas",l:"Cr（肌酸酐）",u:"mg/dL"}];
   const wd=document.createElement("div");wd.className="warn";
   const updW=()=>{const m=bio.filter(b=>F[b.hk]==="無").map(b=>b.l);if(m.length){wd.className="warn show";wd.innerHTML="⚠️ <b>需請主任加開：</b>"+m.join("、")+"<br><span style='font-size:12px;color:#6b7280'>前測＋三個月後後測，共兩次</span>"}else wd.className="warn"};
   bio.forEach(b=>{const r=document.createElement("div");r.className="row";r.appendChild(Object.assign(document.createElement("div"),{className:"lbl wide",textContent:b.l}));
@@ -1175,7 +1187,41 @@ function buildForm(){
   pwR.appendChild(Object.assign(document.createElement("div"),{className:"lbl",textContent:"BMI",style:"min-width:35px"}));
   pwR.appendChild(mkAuto("postBmi","green"));cpo.appendChild(pwR);calcBMI("height","postWeight","postBmi");
   cpo.appendChild(mkSub("生化檢驗值","green"));
-  [["postEgfr","eGFR","mL/min/1.73m²"],["postAlb","Albumin","g/dL"],["postK","K（鉀）","mEq/L"],["postP","P（磷）","mg/dL"],["postHb","Hb","g/dL"]].forEach(([k,l,u])=>{cpo.appendChild(mkRow(l,mkI(k,{type:"number",ph:u,step:"0.01"}),true))});
+  cpo.appendChild(mkNote("有／無＝本次是否有抽該項；第一個填入的檢驗日期會自動帶入其他尚未填寫的項目，各項仍可單獨修改"));
+  // v11.7: 每項檢驗值可獨立記錄檢驗日期，並標記是否有抽血
+  const postDateFill=(srcKey)=>{
+    const v=F[srcKey+"Date"];if(!v)return;
+    POST_LABS.forEach(b=>{
+      if(b.k===srcKey)return;
+      if(F[b.k+"Date"])return;
+      F[b.k+"Date"]=v;
+      const el=document.querySelector('[data-key="'+b.k+'Date"]');if(el)el.value=v;
+    });
+  };
+  POST_LABS.forEach(b=>{
+    const hk=b.k+"Has",dk=b.k+"Date";
+    if(F[hk]==="有抽")F[hk]="有";if(F[hk]==="沒抽")F[hk]="無"; // 相容前一版用字
+    const r=document.createElement("div");r.className="row";
+    r.appendChild(Object.assign(document.createElement("div"),{className:"lbl wide",textContent:b.l}));
+    const vi=mkI(b.k,{type:"number",ph:b.u,step:"0.01"});vi.style.width="100px";
+    const di=mkI(dk,{type:"date",onChange:()=>postDateFill(b.k)});di.style.cssText="width:140px;font-size:12.5px";
+    const hp=document.createElement("div");hp.className="pills";hp.style.marginRight="8px";
+    const syncDisabled=()=>{const off=F[hk]==="無";[vi,di].forEach(el=>{el.disabled=off;el.style.opacity=off?"0.45":"1"})};
+    ["有","無"].forEach(v=>{
+      const btn=document.createElement("button");btn.type="button";
+      btn.className="pill"+(F[hk]===v?" sel-green":"");btn.textContent=v;
+      btn.addEventListener("click",()=>{
+        F[hk]=(F[hk]===v?"":v);
+        hp.querySelectorAll(".pill").forEach(p=>p.className="pill");
+        if(F[hk]===v)btn.className="pill sel-green";
+        syncDisabled();
+      });
+      hp.appendChild(btn);
+    });
+    r.appendChild(hp);r.appendChild(vi);r.appendChild(di);
+    syncDisabled();
+    cpo.appendChild(r);
+  });
   buildSGA(cpo,false);
   cpo.appendChild(mkSub("24小時飲食紀錄","green"));cpo.appendChild(mkNote("若病人有完整系統紀錄可跳過"));
   const pdt=document.createElement("table");pdt.className="diet-table";const pdh=document.createElement("tr");["餐次","食物品項與份量"].forEach(h=>{const th=document.createElement("th");th.textContent=h;pdh.appendChild(th)});pdt.appendChild(pdh);
@@ -1405,6 +1451,8 @@ function showList(){
       {n:"鉀 K",pre:"preK",post:"postK",dir:"down"},
       {n:"磷 P",pre:"preP",post:"postP",dir:"down"},
       {n:"Hb",pre:"preHb",post:"postHb",dir:"up"},
+      {n:"BUN",pre:"preBun",post:"postBun",dir:"down"},
+      {n:"Cr",pre:"preCr",post:"postCr",dir:"down"},
       {n:"體重",pre:"weight",post:"postWeight",dir:"none"}
     ];
     const gUsed=recs.filter(r=>r.noSystem==="有使用");
@@ -1433,7 +1481,32 @@ function showList(){
       ].forEach(c=>{const td=document.createElement("td");td.textContent=c[0];td.style.cssText="padding:4px 12px;text-align:"+c[3]+";border-bottom:1px solid var(--border);color:"+c[1]+(c[2]?";font-weight:700":"")+(c[4]?";border-left:2px solid var(--border)":"");tr.appendChild(td)});
       stat.appendChild(tr);
     });
+    // v11.6/11.7: 高血鉀、高血磷前後測人數
+    const ABN=[
+      {n:"高血鉀",pre:"preK",post:"postK",th:5.0,ab:"K",u:"mEq/L"},
+      {n:"高血磷",pre:"preP",post:"postP",th:4.5,ab:"P",u:"mg/dL"}
+    ];
+    const cntAbn=(sub,key,th)=>{let n=0,tot=0;sub.forEach(r=>{const v=parseFloat(r[key]);if(isNaN(v))return;tot++;if(v>th)n++});return{n:n,tot:tot}};
+    ABN.forEach((A,ai)=>{
+      const top=ai===0?";border-top:2px solid var(--orange)":"";
+      const abRow=document.createElement("tr");abRow.style.background="#fffbeb";
+      const mkAb=(txt,col,bl,bold)=>{const td=document.createElement("td");td.textContent=txt;td.style.cssText="padding:5px 12px;text-align:center;border-bottom:1px solid var(--border)"+top+";white-space:nowrap;color:"+col+(bold?";font-weight:700":"")+(bl?";border-left:2px solid var(--border)":"");return td};
+      const lblTd=document.createElement("td");lblTd.innerHTML=A.n+' <span style="font-size:10px;color:var(--text3)">'+A.ab+'&gt;'+A.th.toFixed(1)+'</span>';
+      lblTd.style.cssText="padding:5px 12px;text-align:left;border-bottom:1px solid var(--border)"+top+";color:var(--text);white-space:nowrap";
+      abRow.appendChild(lblTd);
+      [gUsed,gNot].forEach(sub=>{
+        const a=cntAbn(sub,A.pre,A.th),b=cntAbn(sub,A.post,A.th);
+        const d=b.n-a.n;
+        abRow.appendChild(mkAb("前測 "+a.n+"/"+a.tot,"var(--text)",true,true));
+        abRow.appendChild(mkAb("後測 "+b.n+"/"+b.tot,"var(--text)",false,true));
+        abRow.appendChild(mkAb(d<0?"↓"+Math.abs(d):d>0?"↑"+d:"持平",d<0?gd:d>0?bd:"var(--text3)",false,true));
+      });
+      stat.appendChild(abRow);
+    });
     area.appendChild(stat);
+    const hkNote=document.createElement("div");hkNote.style.cssText="text-align:center;font-size:11px;color:var(--text3);margin:-6px 0 10px";
+    hkNote.innerHTML='高血鉀（K &gt; 5.0 mEq/L）、高血磷（P &gt; 4.5 mg/dL）：分子＝超標人數，分母＝該次有填寫該項數值之人數；箭頭為後測減前測之人數變化';
+    area.appendChild(hkNote);
     // v11.5: SUS 系統使用性小計（取代原 SGA 小計）
     const susAll=recs.map(r=>parseFloat(r.susScore)).filter(v=>!isNaN(v));
     const susLine=document.createElement("div");susLine.style.cssText="text-align:center;font-size:12px;color:var(--text3);margin:0 0 6px;line-height:1.9";
@@ -1489,7 +1562,7 @@ function showList(){
       }else{qs.style.color="#a8a08f"}
       td.appendChild(qs);return td;
     };
-    const thead=document.createElement("tr");["#","編號","姓名","收案","後測","系統","CKD","eGFR","Alb","K","P","Hb","體重","SUS",""].forEach(h=>{const th=document.createElement("th");th.textContent=h;thead.appendChild(th)});tbl.appendChild(thead);
+    const thead=document.createElement("tr");["#","編號","姓名","收案","後測","系統","CKD","eGFR","Alb","K","P","Hb","BUN","Cr","體重","SUS",""].forEach(h=>{const th=document.createElement("th");th.textContent=h;thead.appendChild(th)});tbl.appendChild(thead);
     sortedIdxs.forEach((ri,dispIdx)=>{const r=recs[ri];const tr=document.createElement("tr");
       if(r.noSystem==="未使用")tr.style.background="#f5f4f1";
       [dispIdx+1,r.subjectId,r.name].forEach(v=>{const td=document.createElement("td");td.textContent=v||"—";tr.appendChild(td)});
@@ -1506,6 +1579,8 @@ function showList(){
       tr.appendChild(arrowCell(r.preK,r.postK,"down"));
       tr.appendChild(arrowCell(r.preP,r.postP,"down"));
       tr.appendChild(arrowCell(r.preHb,r.postHb,"up"));
+      tr.appendChild(arrowCell(r.preBun,r.postBun,"down"));
+      tr.appendChild(arrowCell(r.preCr,r.postCr,"down"));
       tr.appendChild(arrowCell(r.weight,r.postWeight,"none"));
       tr.appendChild(susCell(r.susScore));
       tr.appendChild(mkActTd(ri,r));tbl.appendChild(tr);
@@ -1522,13 +1597,14 @@ function buildColMap(){
     suppCurOther:"其他營養品_目前",suppRecOther:"其他營養品_建議",
     preDate:"前測日期",preLabDate:"檢驗日期",postDate:"後測日期",preUACR:"前測_UACR",
     preEgfr:"前測_eGFR",preEgfrHas:"前測_eGFR有無",preAlb:"前測_Albumin",preAlbHas:"前測_Alb有無",preK:"前測_K",preKHas:"前測_K有無",preP:"前測_P",prePHas:"前測_P有無",preHb:"前測_Hb",preHbHas:"前測_Hb有無",
+    preBun:"前測_BUN",preBunHas:"前測_BUN有無",preCr:"前測_Cr",preCrHas:"前測_Cr有無",
     preW6m:"前測_6月前體重",preWchange:"前測_體重減輕kg",preWchangePct:"前測_體重減輕%",preWt2wk:"前測_近2週體重變化",
     preDietChange:"前測_飲食變化",preDietDuration:"前測_飲食變化期間_週",preDietType:"前測_飲食變化方式",
     preGI_none:"前測_GI無症狀",preGI_nausea:"前測_GI噁心",preGI_vomit:"前測_GI嘔吐",preGI_diarrhea:"前測_GI腹瀉",preGI_anorexia:"前測_GI厭食",
     preFunc:"前測_活動機能",preFuncDuration:"前測_機能受損期間",preFuncType:"前測_機能受損型態",
     preDxMain:"前測_主要診斷",preDxStress:"前測_代謝壓力",
     sgaFatLoss:"前測SGA_皮下脂肪喪失",sgaMuscleLoss:"前測SGA_肌肉耗損",sgaEdemaAnkle:"前測SGA_腳踝水腫",sgaEdemaSacral:"前測SGA_薦骨水腫",sgaAscites:"前測SGA_腹水",sgaRating:"前測SGA_整體評級",
-    postWeight:"後測_體重",postBmi:"後測_BMI",postEgfr:"後測_eGFR",postAlb:"後測_Albumin",postK:"後測_K",postP:"後測_P",postHb:"後測_Hb",
+    postWeight:"後測_體重",postBmi:"後測_BMI",postEgfr:"後測_eGFR",postAlb:"後測_Albumin",postK:"後測_K",postP:"後測_P",postHb:"後測_Hb",postBun:"後測_BUN",postCr:"後測_Cr",
     postW6m:"後測_6月前體重",postWchange:"後測_體重減輕kg",postWchangePct:"後測_體重減輕%",postWt2wk:"後測_近2週體重變化",
     postDietChange:"後測_飲食變化",postDietDuration:"後測_飲食變化期間_週",postDietType:"後測_飲食變化方式",
     postGI_none:"後測_GI無症狀",postGI_nausea:"後測_GI噁心",postGI_vomit:"後測_GI嘔吐",postGI_diarrhea:"後測_GI腹瀉",postGI_anorexia:"後測_GI厭食",
@@ -1538,6 +1614,11 @@ function buildColMap(){
     preNote:"前測備註",postNote:"後測備註",susScore:"SUS分數"
   };
   SUPPS.forEach((s,i)=>{COL_MAP["supp_cur_"+i]="目前營養品_"+s;COL_MAP["supp_rec_"+i]="建議營養品_"+s});
+  POST_LABS.forEach(b=>{
+    const nm=b.l.replace(/（.*?）/g,"");
+    COL_MAP[b.k+"Has"]="後測_"+nm+"有無";
+    COL_MAP[b.k+"Date"]="後測_"+nm+"檢驗日期";
+  });
   ALL_T.forEach(t=>{
     COL_MAP["preOld_"+t.k+"_lo"]="舊目標_"+t.l+"下限"+t.u;COL_MAP["preOld_"+t.k+"_hi"]="舊目標_"+t.l+"上限"+t.u;COL_MAP["preActual_"+t.k]="前測實際_"+t.l+t.u;
     COL_MAP["t_"+t.k+"_lo"]="新目標_"+t.l+"下限"+t.u;COL_MAP["t_"+t.k+"_hi"]="新目標_"+t.l+"上限"+t.u;
@@ -1561,45 +1642,6 @@ function exportXLSX(){if(recs.length===0)return flash("無資料可匯出");
     });
     return o;
   });
-  // === 摘要工作表 ===
-  var sumRows=[["個案資料完成度摘要","","","","","","","","","","匯出時間："+new Date().toLocaleString("zh-TW")],[]];
-  sumRows.push(["編號","姓名","電話","病歷號","CKD","eGFR","Alb","SUS分數","收案","後測預定",
-    "基本資料","生化檢驗","飲食計畫","舊目標","新目標","24hr速記","營養品","SUS","缺少項目"]);
-  var sortedR=[...recs].sort((a,b)=>(a.subjectId||"").localeCompare(b.subjectId||"",undefined,{numeric:true}));
-  sortedR.forEach(function(r){
-    // 檢查各區塊完成度
-    var chkBasic=(r.name&&r.chartNo&&r.height&&r.weight&&r.ckdStage)?"✓":"✗";
-    var chkLab=(r.preEgfr&&r.preAlb)?"✓":(r.preEgfr||r.preAlb)?"△":"✗";
-    var dpCount=0;DP_ALL_KEYS.forEach(function(k){if(r[k]&&parseFloat(r[k])>0)dpCount++});
-    var chkDP=dpCount>=3?"✓("+dpCount+"項)":dpCount>0?"△("+dpCount+"項)":"✗";
-    var oldCount=0;ALL_T.forEach(function(t){if(r["preOld_"+t.k+"_lo"])oldCount++});
-    var chkOld=oldCount>=4?"✓":"✗("+oldCount+"/"+ALL_T.length+")";
-    var newCount=0;ALL_T.forEach(function(t){if(r["t_"+t.k+"_lo"])newCount++});
-    var chkNew=newCount>=4?"✓":"✗("+newCount+"/"+ALL_T.length+")";
-    var mealCount=0;MEALS.forEach(function(m){if(r["preDiet_"+m])mealCount++});
-    var chkMeal=mealCount>=3?"✓":"✗("+mealCount+"/4)";
-    var suppCount=0;SUPPS.forEach(function(_,i){if(r["supp_cur_"+i])suppCount++});
-    var chkSupp=suppCount>0?"✓":"—";
-    var chkSUS=r.susScore?"✓("+r.susScore+")":"✗";
-    // 缺少項目
-    var missing=[];
-    if(chkBasic==="✗")missing.push("基本資料");
-    if(chkLab==="✗")missing.push("生化");
-    if(chkDP.charAt(0)==="✗")missing.push("飲食計畫");
-    if(chkOld.charAt(0)==="✗")missing.push("舊目標");
-    if(chkNew.charAt(0)==="✗")missing.push("新目標");
-    if(chkMeal.charAt(0)==="✗")missing.push("24hr速記");
-    if(chkSUS.charAt(0)==="✗")missing.push("SUS");
-    // 後測預定
-    var postPlan="";if(r.postDate){postPlan=r.postDate}else if(r.preDate){var pd=new Date(r.preDate);pd.setDate(pd.getDate()+84);postPlan=pd.toISOString().slice(0,10)}
-    sumRows.push([
-      String(r.subjectId||""),r.name||"",r.phone||"",r.chartNo||"",
-      r.ckdStage||"",r.preEgfr||"",r.preAlb||"",r.susScore||"",
-      r.preDate||"",postPlan,
-      chkBasic,chkLab,chkDP,chkOld,chkNew,chkMeal,chkSupp,chkSUS,
-      missing.length>0?missing.join("、"):"全部完成 ✓"
-    ]);
-  });
   // 建立 workbook
   var ws=XLSX.utils.json_to_sheet(mapped);
   var range=XLSX.utils.decode_range(ws["!ref"]||"A1");
@@ -1607,14 +1649,10 @@ function exportXLSX(){if(recs.length===0)return flash("無資料可匯出");
     var cell=ws[XLSX.utils.encode_cell({r:row,c:1})];
     if(cell){cell.t="s";cell.v=String(cell.v||"")}
   }
-  var wsSummary=XLSX.utils.aoa_to_sheet(sumRows);
-  // 摘要表欄寬
-  wsSummary["!cols"]=[{wch:8},{wch:8},{wch:14},{wch:12},{wch:5},{wch:7},{wch:5},{wch:5},{wch:10},{wch:10},{wch:7},{wch:7},{wch:12},{wch:12},{wch:12},{wch:10},{wch:7},{wch:10},{wch:20}];
   var wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,wsSummary,"摘要");
   XLSX.utils.book_append_sheet(wb,ws,"CRF");
   XLSX.writeFile(wb,"CRF_營養腎隊友_"+new Date().toISOString().slice(0,10)+".xlsx");
-  flash("✓ 已匯出 Excel（含摘要工作表）")
+  flash("✓ 已匯出 Excel（CRF 工作表）")
 }
 
 // v11.1: ENHANCED importFile with trim, full-overwrite option, unknown column filter
@@ -1631,6 +1669,10 @@ function importFile(e){
       // Build reverse map
       const REV={};const CM=buildColMap();
       Object.keys(CM).forEach(k=>{REV[CM[k]]=k});
+      // v11.7: 舊版欄位名稱相容（腎補納 → 勝補納），避免舊匯出檔匯入時漏欄
+      REV["目前營養品_亞培腎補納"]="supp_cur_0";
+      REV["建議營養品_亞培腎補納"]="supp_rec_0";
+      REV["飲食計畫_腎補納_份"]="dp_supp_sb";
       // 建立合法 key 集合，過濾掉匯出時產生的計算欄位
       const VALID_KEYS=new Set(Object.keys(CM));
       VALID_KEYS.add("收案週次"); // 會被跳過但要能識別
