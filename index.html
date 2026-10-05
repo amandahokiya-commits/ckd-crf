@@ -154,13 +154,14 @@ textarea{resize:vertical;min-height:60px}
 <div class="app">
 <div class="header">
   <h1>營養腎隊友 個案紀錄表</h1>
-  <p>Case Report Form (CRF) v11.8 ｜ 2026.10.05 ｜ <span id="syncBadge" class="sync-status local">💾 本機儲存</span></p>
+  <p>Case Report Form (CRF) v11.9 ｜ 2026.10.05 ｜ <span id="syncBadge" class="sync-status local">💾 本機儲存</span></p>
 </div>
 <div class="tabs" id="tabbar"></div>
 <div id="patientBar" class="hidden"></div>
 <div id="flash" class="flash"></div>
 <div id="formArea" class="hidden"></div>
 <div id="listArea"></div>
+<div id="trendArea" class="hidden"></div>
 <div id="modalRoot"></div>
 </div>
 <script>
@@ -1439,12 +1440,15 @@ function susCell(v){
   return td;
 }
 function showList(){
+  const ta=document.getElementById("trendArea");if(ta)ta.className="hidden";
   document.getElementById("formArea").className="hidden";document.getElementById("patientBar").className="hidden";const area=document.getElementById("listArea");area.className="";area.innerHTML="";updateTabbar();
   const h=document.createElement("h2");h.style.cssText="text-align:center;color:var(--blue);margin:16px 0 8px;font-size:18px";h.textContent="個案總表 ("+recs.length+"筆)";area.appendChild(h);
   const aR=document.createElement("div");aR.style.cssText="display:flex;gap:8px;justify-content:center;margin:12px 0;flex-wrap:wrap";
   const nB=document.createElement("button");nB.className="btn btn-new";nB.textContent="＋ 新增個案";nB.addEventListener("click",()=>{F=newF();editIdx=null;enterForm()});aR.appendChild(nB);
   const eB=document.createElement("button");eB.className="btn btn-green";eB.textContent="⬇ 匯出Excel";eB.addEventListener("click",exportXLSX);aR.appendChild(eB);
   const iB=document.createElement("button");iB.className="btn btn-gray";iB.textContent="⬆ 匯入";const iI=document.createElement("input");iI.type="file";iI.accept=".xlsx,.csv";iI.style.display="none";iI.addEventListener("change",importFile);iB.addEventListener("click",()=>iI.click());aR.appendChild(iB);aR.appendChild(iI);
+
+  const tB=document.createElement("button");tB.className="btn";tB.style.cssText="background:#0f766e;color:#fff";tB.textContent="📈 整體趨勢";tB.addEventListener("click",showTrend);aR.appendChild(tB);
 
   // v10.2 NEW: Backup button
   const bkB=document.createElement("button");bkB.className="btn btn-gray";bkB.style.cssText="background:#dbeafe;color:#1e40af";bkB.textContent="🗂 備份管理";
@@ -1698,7 +1702,192 @@ function showList(){
   wrap.appendChild(tbl);area.appendChild(wrap);
   sI.addEventListener("input",()=>{const q=sI.value.toLowerCase().trim();tbl.querySelectorAll("tr").forEach((tr,i)=>{if(i===0)return;tr.style.display=tr.textContent.toLowerCase().includes(q)?"":"none"})});
 }
-function enterForm(){document.getElementById("listArea").className="hidden";document.getElementById("formArea").className="";buildForm();switchTab("basic");updateTabbar();updatePatientBar()}
+// ============================================================
+// v11.9: 整體趨勢（全體前後測比較）
+// ============================================================
+function _mean(a){return a.reduce((x,y)=>x+y,0)/a.length}
+function _sd(a){if(a.length<2)return NaN;const m=_mean(a);return Math.sqrt(a.reduce((s,x)=>s+(x-m)*(x-m),0)/(a.length-1))}
+function _lgamma(z){
+  const g=[676.5203681218851,-1259.1392167224028,771.32342877765313,-176.61502916214059,
+           12.507343278686905,-0.13857109526572012,9.9843695780195716e-6,1.5056327351493116e-7];
+  if(z<0.5)return Math.log(Math.PI/Math.sin(Math.PI*z))-_lgamma(1-z);
+  z-=1;let x=0.99999999999980993;for(let i=0;i<8;i++)x+=g[i]/(z+i+1);
+  const t=z+7.5;return 0.5*Math.log(2*Math.PI)+(z+0.5)*Math.log(t)-t+Math.log(x);
+}
+function _betacf(a,b,x){
+  let m2,aa,c=1,d=1-(a+b)*x/(a+1),h;
+  if(Math.abs(d)<1e-30)d=1e-30;d=1/d;h=d;
+  for(let m=1;m<=200;m++){
+    m2=2*m;aa=m*(b-m)*x/((a+m2-1)*(a+m2));
+    d=1+aa*d;if(Math.abs(d)<1e-30)d=1e-30;c=1+aa/c;if(Math.abs(c)<1e-30)c=1e-30;d=1/d;h*=d*c;
+    aa=-(a+m)*(a+b+m)*x/((a+m2)*(a+m2+1));
+    d=1+aa*d;if(Math.abs(d)<1e-30)d=1e-30;c=1+aa/c;if(Math.abs(c)<1e-30)c=1e-30;d=1/d;
+    const del=d*c;h*=del;if(Math.abs(del-1)<3e-9)break;
+  }
+  return h;
+}
+function _betai(a,b,x){
+  if(x<=0)return 0;if(x>=1)return 1;
+  const bt=Math.exp(_lgamma(a+b)-_lgamma(a)-_lgamma(b)+a*Math.log(x)+b*Math.log(1-x));
+  return x<(a+1)/(a+b+2)?bt*_betacf(a,b,x)/a:1-bt*_betacf(b,a,1-x)/b;
+}
+function _pairedP(d){
+  const n=d.length;if(n<2)return NaN;
+  const s=_sd(d);if(!s)return NaN;
+  const t=_mean(d)/(s/Math.sqrt(n));
+  return _betai((n-1)/2,0.5,(n-1)/((n-1)+t*t));
+}
+function _pTxt(p){return isNaN(p)?"—":(p<0.001?"< 0.001":p.toFixed(3))}
+function _r2(v){return String(Math.round(v*100)/100)}
+
+let _trendCode=null;
+function showTrend(){
+  document.getElementById("listArea").className="hidden";
+  document.getElementById("formArea").className="hidden";
+  document.getElementById("patientBar").className="hidden";
+  const area=document.getElementById("trendArea");area.className="";area.innerHTML="";
+  updateTabbar();
+
+  const h=document.createElement("h2");
+  h.style.cssText="text-align:center;color:#0f766e;margin:16px 0 4px;font-size:18px";
+  h.textContent="整體趨勢";area.appendChild(h);
+  const sub=document.createElement("p");
+  sub.style.cssText="text-align:center;color:var(--text3);font-size:12px;margin-bottom:12px";
+  sub.textContent="全體個案的前測 → 後測變化";area.appendChild(sub);
+
+  const back=document.createElement("div");back.style.cssText="display:flex;justify-content:center;margin-bottom:12px";
+  const bb=document.createElement("button");bb.className="btn btn-gray";bb.textContent="← 回個案總表";
+  bb.addEventListener("click",showList);back.appendChild(bb);area.appendChild(back);
+
+  const card=document.createElement("div");card.className="card";area.appendChild(card);
+  const selRow=document.createElement("div");selRow.className="row";
+  selRow.appendChild(Object.assign(document.createElement("div"),{className:"lbl",textContent:"檢驗項目"}));
+  const sel=document.createElement("select");
+  CMP_LABS.forEach(c=>{
+    const o=document.createElement("option");o.value=c.qk;o.textContent=c.l.replace(/（.*?）/g,"")+(c.u?"（"+c.u+"）":"");
+    sel.appendChild(o);
+  });
+  selRow.appendChild(sel);card.appendChild(selRow);
+  const body=document.createElement("div");card.appendChild(body);
+
+  const pick=()=>{
+    const c=CMP_LABS.find(x=>x.qk===sel.value);
+    _trendCode=sel.value;
+    body.innerHTML="";
+    const rows=[];
+    recs.forEach((r,ri)=>{
+      const a=parseFloat(r[c.pk]),b=parseFloat(r[c.qk]);
+      if(isNaN(a)||isNaN(b))return;
+      rows.push({ri,id:r.subjectId||"",nm:r.name||"",a,b});
+    });
+    const info=document.createElement("div");
+    info.style.cssText="font-size:12.5px;color:var(--text2);margin:6px 0 10px";
+    info.textContent=rows.length+" / "+recs.length+" 位前後測皆有數值";
+    body.appendChild(info);
+    if(rows.length<1){
+      const e=document.createElement("div");e.className="note";e.textContent="這個項目還沒有可比較的資料。";body.appendChild(e);return;
+    }
+
+    // 斜線圖
+    const W=320,H=300,L=46,R=42,T=14,B=28;
+    const vs=rows.flatMap(r=>[r.a,r.b]);
+    let y0=Math.min(...vs),y1=Math.max(...vs);
+    const pad=(y1-y0)*0.08||Math.abs(y1)*0.05+0.5;y0-=pad;y1+=pad;
+    const Y=v=>T+(1-(v-y0)/(y1-y0))*(H-T-B);
+    const XA=L+20,XB=W-R-20;
+    const dAll=rows.map(r=>r.b-r.a),mD=_mean(dAll),sD=_sd(dAll);
+    const mA=_mean(vs),sA=_sd(vs);
+    const isOut=r=>{
+      const zd=sD?Math.abs((r.b-r.a-mD)/sD):0;
+      const za=sA?Math.abs((r.a-mA)/sA):0,zb=sA?Math.abs((r.b-mA)/sA):0;
+      return zd>=2||za>=2||zb>=2;
+    };
+    let g='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="max-width:'+W+'px;display:block;margin:0 auto">';
+    for(let k=0;k<=4;k++){
+      const v=y0+(y1-y0)*k/4,y=Y(v);
+      g+='<line x1="'+L+'" y1="'+y.toFixed(1)+'" x2="'+(W-R)+'" y2="'+y.toFixed(1)+'" stroke="#e8e4df" stroke-width="1"/>'
+        +'<text x="'+(L-6)+'" y="'+(y+3).toFixed(1)+'" text-anchor="end" font-size="10" fill="#a8a08f">'+_r2(v)+'</text>';
+    }
+    rows.forEach(r=>{
+      const col=r.b>r.a?"#d97706":r.b<r.a?"#3b5998":"#a8a08f";
+      const out=isOut(r);r.out=out;
+      g+='<g><title>'+(r.id+" "+r.nm)+"　"+_r2(r.a)+" → "+_r2(r.b)+'</title>'
+        +'<line x1="'+XA+'" y1="'+Y(r.a).toFixed(1)+'" x2="'+XB+'" y2="'+Y(r.b).toFixed(1)+'" stroke="'+col+'" stroke-width="'+(out?1.8:1)+'" opacity="'+(out?.95:.45)+'"/>'
+        +'<circle cx="'+XA+'" cy="'+Y(r.a).toFixed(1)+'" r="'+(out?2.8:2)+'" fill="'+col+'" opacity=".85"/>'
+        +'<circle cx="'+XB+'" cy="'+Y(r.b).toFixed(1)+'" r="'+(out?2.8:2)+'" fill="'+col+'" opacity=".85"/>'
+        +(out?'<text x="'+(XB+6)+'" y="'+(Y(r.b)+3).toFixed(1)+'" font-size="10" fill="'+col+'">'+r.id+'</text>':'')
+        +'</g>';
+    });
+    const mx=_mean(rows.map(r=>r.a)),my=_mean(rows.map(r=>r.b));
+    g+='<line x1="'+XA+'" y1="'+Y(mx).toFixed(1)+'" x2="'+XB+'" y2="'+Y(my).toFixed(1)+'" stroke="#3d3929" stroke-width="2.4"/>'
+      +'<circle cx="'+XA+'" cy="'+Y(mx).toFixed(1)+'" r="3.6" fill="#3d3929"/>'
+      +'<circle cx="'+XB+'" cy="'+Y(my).toFixed(1)+'" r="3.6" fill="#3d3929"/>'
+      +'<text x="'+XA+'" y="'+(H-8)+'" text-anchor="middle" font-size="11" fill="#7c7567">前測</text>'
+      +'<text x="'+XB+'" y="'+(H-8)+'" text-anchor="middle" font-size="11" fill="#7c7567">後測</text></svg>';
+    const gd=document.createElement("div");gd.innerHTML=g;body.appendChild(gd);
+    const lg=document.createElement("div");
+    lg.style.cssText="text-align:center;font-size:11.5px;color:var(--text2);margin:4px 0 12px";
+    lg.innerHTML='<span style="color:#d97706">▬</span> 上升　<span style="color:#3b5998">▬</span> 下降　<span style="color:#3d3929">▬</span> 全體平均';
+    body.appendChild(lg);
+
+    // 統計摘要
+    const n=rows.length,md=_mean(dAll),se=_sd(dAll)/Math.sqrt(n);
+    const up=dAll.filter(v=>v>0).length,dn=dAll.filter(v=>v<0).length;
+    const st=document.createElement("table");st.className="diet-table";
+    const put=(k,v)=>{const tr=document.createElement("tr");
+      const a=document.createElement("td");a.style.cssText="width:45%;color:var(--text2)";a.textContent=k;
+      const b=document.createElement("td");b.style.cssText="text-align:right;font-weight:600";b.textContent=v;
+      tr.appendChild(a);tr.appendChild(b);st.appendChild(tr)};
+    put("人數",String(n));
+    put("前測",_r2(mx)+" ± "+(isNaN(_sd(rows.map(r=>r.a)))?"—":_r2(_sd(rows.map(r=>r.a)))));
+    put("後測",_r2(my)+" ± "+(isNaN(_sd(rows.map(r=>r.b)))?"—":_r2(_sd(rows.map(r=>r.b)))));
+    put("平均變化",(md>0?"+":"")+_r2(md)+" "+(c.u||""));
+    put("95% 信賴區間",isNaN(se)?"—":(_r2(md-1.96*se)+" ～ "+_r2(md+1.96*se)));
+    put("成對 t 檢定 p",_pTxt(_pairedP(dAll)));
+    put("上升／下降",up+" ／ "+dn+" 人");
+    body.appendChild(st);
+
+    const warn=document.createElement("div");warn.className="note";warn.style.marginTop="6px";
+    warn.textContent="收案或後測尚未完成時，p 值僅供觀察，不宜直接作為結論。";
+    body.appendChild(warn);
+
+    // 偏離較多的個案
+    const flagged=rows.filter(r=>r.out).sort((x,y)=>Math.abs(y.b-y.a)-Math.abs(x.b-x.a));
+    const sorted=[...rows].sort((x,y)=>(y.b-y.a)-(x.b-x.a));
+    const list=flagged.length?flagged.slice(0,6):sorted.slice(0,3).concat(sorted.slice(-3).reverse());
+    const t2=document.createElement("table");t2.className="diet-table";t2.style.marginTop="14px";
+    const hr=document.createElement("tr");
+    [flagged.length?("偏離較多的個案（"+flagged.length+" 位）"):"變化最大的個案","前 → 後","變化"].forEach((x,i)=>{
+      const th=document.createElement("th");th.textContent=x;if(i)th.style.textAlign="right";hr.appendChild(th)});
+    t2.appendChild(hr);
+    list.forEach(r=>{
+      const tr=document.createElement("tr");tr.style.cursor="pointer";
+      const d=r.b-r.a;
+      const c0=document.createElement("td");c0.innerHTML="<b>"+r.id+"</b> "+r.nm;
+      const c1=document.createElement("td");c1.style.textAlign="right";c1.textContent=_r2(r.a)+" → "+_r2(r.b);
+      const c2=document.createElement("td");c2.style.cssText="text-align:right;font-weight:600;color:"+(d>0?"#d97706":"#3b5998");
+      c2.textContent=(d>0?"+":"")+_r2(d);
+      tr.appendChild(c0);tr.appendChild(c1);tr.appendChild(c2);
+      tr.addEventListener("click",()=>{F={...recs[r.ri]};editIdx=r.ri;enterForm();switchTab("post")});
+      t2.appendChild(tr);
+    });
+    body.appendChild(t2);
+    const nt=document.createElement("div");nt.className="note";nt.style.marginTop="4px";
+    nt.textContent="標準：變化量或數值偏離平均 2 個標準差以上。點個案可直接跳到該筆的後測頁。";
+    body.appendChild(nt);
+  };
+  // 預設挑配對人數最多的項目
+  let best=CMP_LABS[0].qk,bn=-1;
+  CMP_LABS.forEach(c=>{
+    const n=recs.filter(r=>!isNaN(parseFloat(r[c.pk]))&&!isNaN(parseFloat(r[c.qk]))).length;
+    if(n>bn){bn=n;best=c.qk}
+  });
+  sel.value=(_trendCode&&CMP_LABS.some(c=>c.qk===_trendCode))?_trendCode:best;
+  sel.addEventListener("change",pick);
+  pick();
+}
+
+function enterForm(){const ta=document.getElementById("trendArea");if(ta)ta.className="hidden";document.getElementById("listArea").className="hidden";document.getElementById("formArea").className="";buildForm();switchTab("basic");updateTabbar();updatePatientBar()}
 function showForm(){enterForm()}
 function buildColMap(){
   const COL_MAP={subjectId:"受試者編號",chartNo:"病歷號",clinicDietitian:"門診營養師",name:"姓名",phone:"聯絡電話",birthday:"生日",age:"年齡",sex:"性別",height:"身高cm",weight:"體重kg",bmi:"BMI",activity:"活動量",ckdStage:"CKD分期",dm:"DM",htn:"HTN",hyperlipidemia:"高血脂",comorbidOther:"其他共病",assessor:"評估者",noSystem:"系統使用情形",
