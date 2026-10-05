@@ -154,7 +154,7 @@ textarea{resize:vertical;min-height:60px}
 <div class="app">
 <div class="header">
   <h1>營養腎隊友 個案紀錄表</h1>
-  <p>Case Report Form (CRF) v11.7 ｜ 2026.09.02 ｜ <span id="syncBadge" class="sync-status local">💾 本機儲存</span></p>
+  <p>Case Report Form (CRF) v11.8 ｜ 2026.10.05 ｜ <span id="syncBadge" class="sync-status local">💾 本機儲存</span></p>
 </div>
 <div class="tabs" id="tabbar"></div>
 <div id="patientBar" class="hidden"></div>
@@ -376,6 +376,26 @@ const POST_LABS=[
   {k:"postCr",l:"Cr（肌酸酐）",u:"mg/dL"}
 ];
 
+// v11.8: 其他生化檢驗項目（計劃書 5.3(4)），前後測共用，收合顯示
+const EXTRA_LABS=[
+  {k:"UA",l:"UA（尿酸）",u:"mg/dL"},
+  {k:"UPCR",l:"UPCR（尿蛋白/肌酸酐）",u:"mg/g"},
+  {k:"Ca",l:"Ca（鈣）",u:"mg/dL"},
+  {k:"Na",l:"Na（鈉）",u:"mEq/L"},
+  {k:"FPG",l:"FPG（空腹血糖）",u:"mg/dL"},
+  {k:"HbA1c",l:"HbA1c",u:"%"},
+  {k:"TC",l:"TC（總膽固醇）",u:"mg/dL"},
+  {k:"TG",l:"TG（三酸甘油酯）",u:"mg/dL"},
+  {k:"LDL",l:"LDL-C",u:"mg/dL"},
+  {k:"HDL",l:"HDL-C",u:"mg/dL"}
+];
+// 前後測對照用：前測 key / 後測 key / 名稱 / 單位
+const CMP_LABS=[].concat(
+  POST_LABS.map(b=>({pk:"pre"+b.k.slice(4),qk:b.k,l:b.l,u:b.u})),
+  [{pk:"preUACR",qk:"postUACR",l:"UACR（蛋白尿）",u:"mg/g"}],
+  EXTRA_LABS.map(b=>({pk:"pre"+b.k,qk:"post"+b.k,l:b.l,u:b.u}))
+);
+
 const WEEK_START=new Date("2026-03-25");
 const calcWeek=(dateStr)=>{if(!dateStr)return"";const d=new Date(dateStr);const diff=Math.floor((d-WEEK_START)/(7*24*60*60*1000));return"W"+(Math.max(1,diff+1))};
 
@@ -396,7 +416,8 @@ function newF(){
     antihtn:"",antihtnName:"",antiDM:"",antiDMName:"",lipidMed:"",lipidMedName:"",kBinder:"",kBinderName:"",pBinder:"",pBinderName:"",
     ...Object.fromEntries(SUPPS.map((_,i)=>["supp_cur_"+i,""])),suppCurOther:"",
     ...Object.fromEntries(DP_ALL_KEYS.map(k=>[k,""])),
-    preDate:"",preLabDate:"",postDate:"",preUACR:"",
+    preDate:"",preLabDate:"",postDate:"",preUACR:"",postUACR:"",
+    ...Object.fromEntries(EXTRA_LABS.flatMap(b=>[["pre"+b.k,""],["post"+b.k,""]])),
     preEgfr:"",preEgfrHas:"",preAlb:"",preAlbHas:"",preK:"",preKHas:"",preP:"",prePHas:"",preHb:"",preHbHas:"",preBun:"",preBunHas:"",preCr:"",preCrHas:"",
     preW6m:"",preWchange:"",preWchangePct:"",preWt2wk:"",
     preDietChange:"",preDietDuration:"",preDietType:"",
@@ -669,6 +690,82 @@ function mkRange(tItem,prefix){
   return r;
 }
 
+// v11.8: 其他生化檢驗（收合），prefix 為 "pre" 或 "post"
+function mkExtraLabs(prefix,green){
+  const d=document.createElement("details");
+  d.className="sticky-note";
+  d.style.cssText="position:static;margin:12px 0 0;border-top:none;border:1.5px dashed "+(green?"#86efac":"#c7d2fe")+";border-radius:12px;background:"+(green?"#f0fdf4":"#f8fafc");
+  const filled=EXTRA_LABS.filter(b=>F[prefix+b.k]!=="").length;
+  const sm=document.createElement("summary");
+  sm.style.cssText="padding:10px 14px;cursor:pointer;font-weight:700;font-size:13.5px;color:"+(green?"var(--green)":"var(--blue)")+";list-style:none;display:flex;align-items:center;gap:6px";
+  const cnt=document.createElement("span");
+  cnt.style.cssText="margin-left:auto;font-weight:500;font-size:12px;color:var(--text3)";
+  const setCnt=()=>{const n=EXTRA_LABS.filter(b=>F[prefix+b.k]!=="").length;cnt.textContent=n?("已填 "+n+" / "+EXTRA_LABS.length):"點擊展開"};
+  sm.appendChild(Object.assign(document.createElement("span"),{textContent:"其他生化檢驗（選填）"}));
+  sm.appendChild(cnt);setCnt();
+  if(filled)d.open=true;
+  d.appendChild(sm);
+  const body=document.createElement("div");body.style.cssText="padding:4px 14px 12px";
+  EXTRA_LABS.forEach(b=>{
+    const r=document.createElement("div");r.className="row";
+    r.appendChild(Object.assign(document.createElement("div"),{className:"lbl wide",textContent:b.l}));
+    const i=mkI(prefix+b.k,{type:"number",ph:b.u,step:"0.01",onChange:()=>{setCnt();if(window._cmpRefresh)window._cmpRefresh()}});
+    i.style.maxWidth="140px";
+    r.appendChild(i);
+    r.appendChild(Object.assign(document.createElement("span"),{className:"unit",textContent:b.u,style:"font-size:12px;color:var(--text3);margin-left:6px"}));
+    body.appendChild(r);
+  });
+  d.appendChild(body);
+  return d;
+}
+
+// v11.8: 前測 → 後測 → 差值 對照表
+function mkCompareTable(){
+  const wrap=document.createElement("div");
+  const render=()=>{
+    wrap.innerHTML="";
+    const rows=CMP_LABS.filter(c=>String(F[c.pk]||"")!==""||String(F[c.qk]||"")!=="");
+    if(!rows.length){
+      const e=document.createElement("div");
+      e.className="note";e.style.padding="8px 2px";
+      e.textContent="前測與後測都還沒有數值，填入後這裡會自動列出變化。";
+      wrap.appendChild(e);return;
+    }
+    const t=document.createElement("table");t.className="diet-table";t.style.marginTop="4px";
+    const hr=document.createElement("tr");
+    ["檢驗項目","前測","後測","變化"].forEach((h,i)=>{
+      const th=document.createElement("th");th.textContent=h;
+      if(i)th.style.textAlign="right";
+      hr.appendChild(th);
+    });
+    t.appendChild(hr);
+    rows.forEach(c=>{
+      const a=parseFloat(F[c.pk]),b=parseFloat(F[c.qk]);
+      const tr=document.createElement("tr");
+      const td0=document.createElement("td");
+      td0.innerHTML=c.l.replace(/（.*?）/g,"")+" <span style='color:var(--text3);font-size:11px'>"+(c.u||"")+"</span>";
+      tr.appendChild(td0);
+      [a,b].forEach(v=>{
+        const td=document.createElement("td");td.style.textAlign="right";
+        td.textContent=isNaN(v)?"—":String(Math.round(v*100)/100);
+        tr.appendChild(td);
+      });
+      const td3=document.createElement("td");td3.style.cssText="text-align:right;font-weight:600";
+      if(!isNaN(a)&&!isNaN(b)){
+        const d=Math.round((b-a)*100)/100;
+        td3.textContent=(d>0?"▲ +":d<0?"▼ ":"＝ ")+d;
+        td3.style.color=d>0?"var(--orange)":d<0?"var(--blue)":"var(--text3)";
+      }else{td3.textContent="—";td3.style.color="var(--text3)"}
+      tr.appendChild(td3);
+      t.appendChild(tr);
+    });
+    wrap.appendChild(t);
+  };
+  render();
+  window._cmpRefresh=render;
+  return wrap;
+}
+
 function mkSupps(prefix,cls){
   const d=document.createElement("div");d.className="chk-grid";
   SUPPS.forEach((s,i)=>{
@@ -807,6 +904,7 @@ function buildForm(){
     if(b.k==="preEgfr"){bioOpts.onChange=function(){var v=parseFloat(F.preEgfr)||0;if(v<=0)return;var ns="";if(v>=90)ns="1";else if(v>=60)ns="2";else if(v>=45)ns="3a";else if(v>=30)ns="3b";else if(v>=15)ns="4";else ns="5";if(ns&&ns!==F.ckdStage){F.ckdStage=ns;var stgPills=document.querySelectorAll("[data-ckd-pill]");stgPills.forEach(function(p){p.className=p.dataset.val===ns?"pill sel":"pill"});flash("eGFR "+v+" → 自動設定 CKD "+ns+" 期")}}}
     r.appendChild(mkI(b.k,bioOpts));c.appendChild(r)});
   c.appendChild(wd);updW();
+  c.appendChild(mkExtraLabs("pre",false));
   c.appendChild(mkSub("24小時飲食速記"));c.appendChild(mkNote("跟診時快速記錄，之後輸入系統精算"));
   const dt=document.createElement("table");dt.className="diet-table";const dh=document.createElement("tr");["餐次","食物品項與份量"].forEach(h=>{const th=document.createElement("th");th.textContent=h;dh.appendChild(th)});dt.appendChild(dh);
   MEALS.forEach(m=>{const tr=document.createElement("tr");const td1=document.createElement("td");td1.style.cssText="width:70px;font-weight:600";td1.textContent=m;tr.appendChild(td1);const td2=document.createElement("td");td2.appendChild(mkTA("preDiet_"+m,"輸入食物..."));tr.appendChild(td2);dt.appendChild(tr)});c.appendChild(dt);
@@ -1203,7 +1301,7 @@ function buildForm(){
     if(F[hk]==="有抽")F[hk]="有";if(F[hk]==="沒抽")F[hk]="無"; // 相容前一版用字
     const r=document.createElement("div");r.className="row";
     r.appendChild(Object.assign(document.createElement("div"),{className:"lbl wide",textContent:b.l}));
-    const vi=mkI(b.k,{type:"number",ph:b.u,step:"0.01"});vi.style.width="100px";
+    const vi=mkI(b.k,{type:"number",ph:b.u,step:"0.01",onChange:()=>{if(window._cmpRefresh)window._cmpRefresh()}});vi.style.width="100px";
     const di=mkI(dk,{type:"date",onChange:()=>postDateFill(b.k)});di.style.cssText="width:140px;font-size:12.5px";
     const hp=document.createElement("div");hp.className="pills";hp.style.marginRight="8px";
     const syncDisabled=()=>{const off=F[hk]==="無";[vi,di].forEach(el=>{el.disabled=off;el.style.opacity=off?"0.45":"1"})};
@@ -1222,6 +1320,16 @@ function buildForm(){
     syncDisabled();
     cpo.appendChild(r);
   });
+  const uacrR=document.createElement("div");uacrR.className="row";
+  uacrR.appendChild(Object.assign(document.createElement("div"),{className:"lbl wide",textContent:"UACR（蛋白尿）"}));
+  const uacrI=mkI("postUACR",{type:"number",ph:"mg/g",step:"0.01",onChange:()=>{if(window._cmpRefresh)window._cmpRefresh()}});
+  uacrI.style.maxWidth="140px";uacrR.appendChild(uacrI);
+  uacrR.appendChild(Object.assign(document.createElement("span"),{className:"unit",textContent:"mg/g",style:"font-size:12px;color:var(--text3);margin-left:6px"}));
+  cpo.appendChild(uacrR);
+  cpo.appendChild(mkExtraLabs("post",true));
+  cpo.appendChild(mkSub("前後測對照","green"));
+  cpo.appendChild(mkNote("自動比對前測與後測，僅列出至少一側有數值的項目"));
+  cpo.appendChild(mkCompareTable());
   buildSGA(cpo,false);
   cpo.appendChild(mkSub("24小時飲食紀錄","green"));cpo.appendChild(mkNote("若病人有完整系統紀錄可跳過"));
   const pdt=document.createElement("table");pdt.className="diet-table";const pdh=document.createElement("tr");["餐次","食物品項與份量"].forEach(h=>{const th=document.createElement("th");th.textContent=h;pdh.appendChild(th)});pdt.appendChild(pdh);
@@ -1278,7 +1386,8 @@ function buildForm(){
   updateCond();
 }
 
-function switchTab(id){curTab=id;TABS.forEach(t=>{const s=document.getElementById("sec_"+t.id);if(s)s.className=t.id===id?"":"hidden"});document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.tid===id));if(id==="diet"&&window._dpRecalc)try{window._dpRecalc()}catch(e){}}
+function switchTab(id){curTab=id;TABS.forEach(t=>{const s=document.getElementById("sec_"+t.id);if(s)s.className=t.id===id?"":"hidden"});document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.tid===id));if(id==="diet"&&window._dpRecalc)try{window._dpRecalc()}catch(e){}
+ if(id==="post"&&window._cmpRefresh)try{window._cmpRefresh()}catch(e){}}
 function updateTabbar(){const bar=document.getElementById("tabbar");bar.innerHTML="";if(document.getElementById("formArea").className==="hidden"){bar.className="tabs hidden";return}bar.className="tabs";TABS.forEach(t=>{const b=document.createElement("button");b.className="tab"+(t.cls?" "+t.cls:"")+(curTab===t.id?" active":"");b.textContent=t.label;b.dataset.tid=t.id;b.addEventListener("click",()=>switchTab(t.id));bar.appendChild(b)})}
 function updatePatientBar(){const pb=document.getElementById("patientBar");if(document.getElementById("formArea").className==="hidden"){pb.className="hidden";return}pb.className="patient-bar";pb.innerHTML="";
   const info=document.createElement("div");
@@ -1627,6 +1736,12 @@ function buildColMap(){
   MEALS.forEach(m=>{COL_MAP["preDiet_"+m]="飲食速記_"+m;COL_MAP["postDiet_"+m]="後測飲食_"+m});
   DP_FOODS.forEach(cat=>cat.items.forEach(f=>{COL_MAP[f.k]="飲食計畫_"+f.n+"_份"}));
   SUS_Q.forEach((_,i)=>{COL_MAP["sus"+(i+1)]="SUS_Q"+(i+1)});
+  COL_MAP["postUACR"]="後測_UACR";
+  EXTRA_LABS.forEach(b=>{
+    const nm=b.l.replace(/（.*?）/g,"");
+    COL_MAP["pre"+b.k]="前測_"+nm;
+    COL_MAP["post"+b.k]="後測_"+nm;
+  });
   COL_MAP["_lastModified"]="最後修改時間";
   return COL_MAP;
 }
